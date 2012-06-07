@@ -26,28 +26,28 @@ def remove_urls(text):
     text = re.sub("www[^\s]+", "httpaddr", text)
     return text
 
-def get_filing_year_from_fiscal_year(fiscal_year, minimum_digits_required=2):
-    ''' 
-        10-K for year X will be filed in year X + 1 
-        take a number and return a string to preserve formatting.
-    '''
-    
-    fiscal_year = str(fiscal_year)
-    number_of_digits = len(fiscal_year)
-    
-    if number_of_digits == 2 and fiscal_year == '99':
-        return '00'
-        
-    elif number_of_digits == 4 and fiscal_year == '1999':
-        return '2000'
-    
-    else:
-        return_string = str(int(fiscal_year) + 1)
-        while len(return_string) < minimum_digits_required:
-            return_string = '0' + return_string
-        return return_string
-
 def get_10k_url_for_a_given_company_and_year(CIK, fiscal_year=None, filing_year=None):
+    
+    def get_filing_year_from_fiscal_year(fiscal_year, minimum_digits_required=2):
+        ''' 
+            10-K for year X will be filed in year X + 1 
+            take a number and return a string to preserve formatting.
+        '''
+        
+        fiscal_year = str(fiscal_year)
+        number_of_digits = len(fiscal_year)
+        
+        if number_of_digits == 2 and fiscal_year == '99':
+            return '00'
+            
+        elif number_of_digits == 4 and fiscal_year == '1999':
+            return '2000'
+        
+        else:
+            return_string = str(int(fiscal_year) + 1)
+            while len(return_string) < minimum_digits_required:
+                return_string = '0' + return_string
+            return return_string
     
     SEC_WEBSITE = "http://www.sec.gov/"
     
@@ -57,23 +57,23 @@ def get_10k_url_for_a_given_company_and_year(CIK, fiscal_year=None, filing_year=
     if len(filing_year) == 4:
         filing_year = filing_year[2:4]
         
-        
     source = urlopen(SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + str(CIK) + "&type=10-K").read()
+    
+    # remove 10-K/A URLs
+    source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
     soup = BeautifulSoup(source, "html.parser")
         
-    matching_urls = set()
 
     for link in soup.find_all('a', href=re.compile("/Archives/.*\-" + filing_year + "\-.*\-index\.html?$")):
+        
         url = link['href']
-                        
         url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
-        matching_urls.add(url)
+        return SEC_WEBSITE + url
 
-    for first_filing in sorted(matching_urls):                  # get first url; these things are numbered.
-        return SEC_WEBSITE + first_filing
 
 def sanitize_html_into_working_text(html):
     
+    print 'sanitize_html_into_working_text'
     html = remove_html_tags(html)
     html = remove_monetary_figures(html)
     html = remove_urls(html)
@@ -99,39 +99,52 @@ def remove_irrelevant_text(text):
 def get_litigation_footnotes(text):
     
     def check_if_valid_hit(hit):
-    
+        
         # check to see whether it belongs to the table of contents
-        if len(hit) < 100:
+        hit = re.sub("\s+", " ", hit)
+        
+        if len(hit) < 200:
             return False
         
         return True
     
-    def default_regex(text):
+    def default_regex():
+        ''' so many 10-Ks have the litigation item structured thusly:
+        Item 3. LITIGATION PROCEEDING
+            blah blah
+        Item 4. blah blah
+        Item 5. blah blah
         
-        hits = re.finditer("^\s*Item\s*?3.*?(?=Item\s*?4)", text, re.M | re.I | re.S)
+        take advantage of this by using the numbers as well as the fact that 
+        the body is between these two Item headers '''
         
-        for hit in hits:
-                        
-            if not check_if_valid_hit(hit.group(0)):
-                continue
-            
-            # legal proceeding is always mentioned very, very close to the start of the real section
-            heading = ''.join(group for group in hit.group(0))[:200]
-                                    
-            # dealing with legal proceedings. so, check the first 5 lines for the phrase.
-            if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
-                return hit.group(0)
+        return "^\s*Item\s*?3.*?(?=Item\s*?4)"
+    
+    def try_all_numbers_after_4():
+        ''' this regex is slightly different than the default regex: it allows
+        for more matching on the Item number. Some 10-Ks miss Item 4 for some reason.'''
+        return "^\s*Item\s*?3.*?(?=Item\s*?[5-9]+)"
     
     print "get_litigation_footnotes"
         
     if re.search("Item", text, re.I):
+        
+        for regex in (default_regex(), try_all_numbers_after_4()):
+        
+        
+            hits = re.finditer(regex, text, re.M | re.I | re.S)
+            
+            for hit in hits:
+                                        
+                if not check_if_valid_hit(hit.group(0)):
+                    continue
                 
-        footnote = default_regex(text)
-        
-        
-        
-        return footnote
-        
+                # legal proceeding is always mentioned very, very close to the start of the real section
+                heading = ''.join(group for group in hit.group(0))[:200]
+                                        
+                # dealing with legal proceedings. so, check the first 5 lines for the phrase.
+                if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
+                    return hit.group(0)        
 
 
 def write_to_file(CIK, filing_year, text):
@@ -161,7 +174,7 @@ def write_to_file(CIK, filing_year, text):
     
 def main():
     
-    CIK = '0000104169'
+    CIK = '0000001750'
     
     for i in xrange(2004, 2012 + 1):
         
@@ -173,9 +186,8 @@ def main():
         if url is not None:
         
             response = urlopen(url).read()
-
-        
             response = sanitize_html_into_working_text(response)
+            
             footnote = get_litigation_footnotes(response)
             
             if footnote is not None:        
