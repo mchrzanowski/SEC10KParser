@@ -5,21 +5,25 @@ Created on Jun 3, 2012
 '''
 
 from __future__ import division
-import nltk
+
+import os.path
 import re
+
 from bs4 import BeautifulSoup
 from urllib2 import urlopen
 from time import time
+
+from HTMLTagStripper import HTMLTagStripper
  
 
-remove_html_tags = lambda text: nltk.clean_html(text)
+remove_html_tags = lambda text: HTMLTagStripper.strip(text)
 remove_monetary_figures = lambda text: re.sub("\$[^\s]+", "dollar", text)
 remove_numbers = lambda text: re.sub("[0-9]+", "number", text)
 remove_email_addresses = lambda text: re.sub("[^\s]+@[^\s]+", 'emailaddr', text)
 
 def remove_urls(text):
-    text = re.sub("https?://[^\s]", 'httpaddr', text)
-    text = re.sub("www[^\s]", "httpaddr", text)
+    text = re.sub("https?://[^\s]+", 'httpaddr', text)
+    text = re.sub("www[^\s]+", "httpaddr", text)
     return text
 
 def get_filing_year_from_fiscal_year(fiscal_year, minimum_digits_required=2):
@@ -43,11 +47,12 @@ def get_filing_year_from_fiscal_year(fiscal_year, minimum_digits_required=2):
             return_string = '0' + return_string
         return return_string
 
-def get_10k_url_for_a_given_company_and_fiscal_year(CIK, fiscal_year):
+def get_10k_url_for_a_given_company_and_year(CIK, fiscal_year=None, filing_year=None):
     
     SEC_WEBSITE = "http://www.sec.gov/"
-
-    filing_year = get_filing_year_from_fiscal_year(fiscal_year, 2)
+    
+    if filing_year is None:
+        filing_year = get_filing_year_from_fiscal_year(fiscal_year, 2)
     
     if len(filing_year) == 4:
         filing_year = filing_year[2:4]
@@ -73,7 +78,7 @@ def sanitize_html_into_working_text(html):
     html = remove_monetary_figures(html)
     html = remove_urls(html)
     html = remove_email_addresses(html)
-    
+        
     return html
 
 def remove_irrelevant_text(text):
@@ -85,44 +90,100 @@ def remove_irrelevant_text(text):
     # no information other than headers.
     # this usually has a link to the signature section at the very bottom.
     if re.search("TABLE\s+?OF\s+?CONTENTS", text, re.I):
-        text = re.sub("TABLE\s+?OF\s+?CONTENTS.*?^\s*Signature", "", text, count=1, flags=re.M | re.I | re.S)
+        new_text = re.sub("TABLE\s+?OF\s+?CONTENTS.*?^\s*?Signature", "", text, count=1, flags=re.M | re.I | re.S)
+        if len(text) / 2 < len(new_text):
+            text = new_text
     
     return text
 
 def get_litigation_footnotes(text):
     
-    print "get_litigation_footnotes"
+    def check_if_valid_hit(hit):
+    
+        # check to see whether it belongs to the table of contents
+        if len(hit) < 100:
+            return False
         
-    if re.search("Items", text, re.I):
+        return True
+    
+    def default_regex(text):
         
-        hits = re.finditer("^\s*?Item.*?[0-9]+.*?\n(?=^\s*?Item.*?[0-9]+)", text, re.M | re.I | re.S)
-                
+        hits = re.finditer("^\s*Item\s*?3.*?(?=Item\s*?4)", text, re.M | re.I | re.S)
+        
         for hit in hits:
+                        
+            if not check_if_valid_hit(hit.group(0)):
+                continue
             
             # legal proceeding is always mentioned very, very close to the start of the real section
+            heading = ''.join(group for group in hit.group(0))[:200]
+                                    
             # dealing with legal proceedings. so, check the first 5 lines for the phrase.
-            if re.search("^\s*?Item.*?\n{0,5}?\s*?Legal\s+Proceeding", hit.group(0), re.I | re.M):
+            if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
                 return hit.group(0)
+    
+    print "get_litigation_footnotes"
+        
+    if re.search("Item", text, re.I):
+                
+        footnote = default_regex(text)
         
         
+        
+        return footnote
+        
+
+
+def write_to_file(CIK, filing_year, text):
+    ''' 
+    we'll dump our resulting data to a text file.
+    it will be structured thusly:
+       corpus
+            CIK_1
+                filing_year_1.txt
+                filing_year_2.txt
+    and so on. 
+    '''
+    
+    print "write_to_file"
+    
+    # this is normally 10 digits. make it 10 for consistent directory grammar
+    while len(CIK) < 10:   
+        CIK = '0' + CIK
+    
+    path = "./corpus/" + CIK
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    with open(path + "/" + filing_year + ".txt", 'w') as f:
+        f.write(text)
     
 def main():
     
-    url = get_10k_url_for_a_given_company_and_fiscal_year(fiscal_year = '2011', CIK = '0001466593') 
-    print url
+    CIK = '0000104169'
     
-    response = urlopen(url).read()
+    for i in xrange(2004, 2012 + 1):
+        
+        filing_year = str(i)
+    
+        url = get_10k_url_for_a_given_company_and_year(filing_year=filing_year, CIK=CIK) 
+        print url
+        
+        if url is not None:
+        
+            response = urlopen(url).read()
 
-    response = sanitize_html_into_working_text(response)
-    response = remove_irrelevant_text(response)
-    footnote = get_litigation_footnotes(response)
-    
-    
-    with open("./lol.txt", 'w') as f:
-        print "Writing"
-#        for num, lol in enumerate(footnotes): f.write("\nNEW: " + str(num) + "\n" + lol)
-        f.write(footnote)
-#        f.write(response)
+        
+            response = sanitize_html_into_working_text(response)
+            footnote = get_litigation_footnotes(response)
+            
+            if footnote is not None:        
+                write_to_file(CIK, filing_year, footnote)
+            else:
+                print "No footnote returned!"
+        
+        
         
 if __name__ == '__main__':
     start = time()
