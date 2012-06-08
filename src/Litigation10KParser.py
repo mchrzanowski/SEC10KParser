@@ -57,7 +57,8 @@ class Litigation10KParser(object):
             
             # check to see whether it belongs to the table of contents
             hit = re.sub("\s+", "", hit)
-            if len(hit) < 100: return False
+            if len(hit) < Constants.MINIMUM_LITITGATION_MENTION_LENGTH: 
+                return False
 
             return True
         
@@ -131,7 +132,7 @@ class Litigation10KParser(object):
         CIK = self.CIK
                 
         # this is normally 10 digits. make it 10 for consistent directory grammar
-        while len(CIK) < 10: 
+        while len(CIK) < Constants.CIK_CODE_LENGTH: 
             CIK = '0' + CIK
         
         path = os.path.join(Constants.PATH_TO_CORPUS, CIK)
