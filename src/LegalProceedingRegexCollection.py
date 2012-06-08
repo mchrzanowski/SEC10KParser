@@ -48,5 +48,5 @@ def item_3_is_lodged_somewhere_with_no_capitals():
     ''' similar to item_3_is_lodged_somewhere(), but capitals didn't help us. try to see whether there are multiple
     spaces and punctuation just before the mention of "item 3" '''
     
-    return "[\.\?\!]\s\s*?ITEM\s*?3.*?(?=ITEM\s*?4)", re.I | re.M | re.S
+    return "(?<=[\.\?\!]\s)\s+?ITEM\s*?3.*?(?=ITEM\s*?4)", re.I | re.M | re.S
     
