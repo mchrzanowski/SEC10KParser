@@ -9,7 +9,7 @@ import re
 
 def get_relevant_regexes():
     return __default(), __item_3_is_lodged_somewhere(), __item_3_is_lodged_somewhere_with_no_capitals(),    \
-         __try_all_numbers_after_4_and_executive_listing(), __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines()
+        __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines(), __try_all_numbers_after_4_and_executive_listing()
 
 def __default():
     ''' so many 10-Ks have the litigation item structured thusly:
