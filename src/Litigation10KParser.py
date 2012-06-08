@@ -4,6 +4,7 @@ Created on Jun 3, 2012
 @author: mchrzanowski
 '''
 
+from __future__ import division
 from bs4 import BeautifulSoup
 from HTMLTagStripper import HTMLTagStripper
 from TextSanitizer import TextSanitizer
@@ -20,36 +21,36 @@ class Litigation10KParser(object):
     
     def __init__(self, CIK, filing_year):
         self.CIK = CIK
-        self.filing_year = self.sanitize_filing_year(filing_year)
+        self.filing_year = self.__sanitize_filing_year(filing_year)
         self.mentions = []
         self.text = ""
         
     def __str__(self):
         return "Litigation10KParser object. CIK:%s Filing Year:%s Number of Mentions:%s" % (self.CIK, self.filing_year, len(self.mentions))
     
-    def get_litigaton_mentions(self):
+    def __get_litigaton_mentions(self):
         ''' the bread and butter of this class. '''
         # first, check for LEGAL PROCEEDINGS
-        mentions = self.get_legal_proceeding_mention(self.text)
+        mentions = self.__get_legal_proceeding_mention(self.text)
         
         if mentions is not None:
             self.mentions.append(mentions)
         
     def parse(self):
-        url = self.get_10k_url()
+        url = self.__get_10k_url()
         
         if url is not None:
             response = urlopen(url).read()
             self.text = TextSanitizer.sanitize(HTMLTagStripper.strip(response))
-            self.get_litigaton_mentions()
+            self.__get_litigaton_mentions()
         
         else:
             raise Exception("Error encountered in:" + self.__str__() + "\n" + "No URL to parse for data.")
 
     
-    def get_legal_proceeding_mention(self, text):
+    def __get_legal_proceeding_mention(self, text):
         
-        def check_if_valid_hit(hit):
+        def check_if_valid_hit(hit, original_text):
             ''' a checker to validate whether a given piece of context could
             conceivably be a real litigation mention and not just some detritus 
             picked up by the regexes '''
@@ -57,16 +58,16 @@ class Litigation10KParser(object):
             # check to see whether it belongs to the table of contents
             hit = re.sub("\s+", "", hit)
             if len(hit) < 100: return False
+
             return True
         
-        for regex, flags_to_use in (LPRC.default(), LPRC.try_all_numbers_after_4(), LPRC.item_3_is_lodged_somewhere(),   \
-                                    LPRC.item_3_is_lodged_somewhere_with_no_capitals()):
-        
+        for regex, flags_to_use in LPRC.get_relevant_regexes():
+            
             hits = re.finditer(regex, text, flags_to_use)
             
             for hit in hits:
                                                     
-                if not check_if_valid_hit(hit.group(0)):
+                if not check_if_valid_hit(hit.group(0), text):
                     continue
                 
                 # legal proceeding is always mentioned very, very close to the start of the real section
@@ -76,7 +77,7 @@ class Litigation10KParser(object):
                 if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
                     return hit.group(0) 
                 
-    def get_10k_url(self):
+    def __get_10k_url(self):
         ''' 
             the SEC EDGAR website is extremely to manipulate to get a list of all the index sites for 10-K for a given company:
                  website/gunk?action=getcompany&CIK=CIK_YOU_NEED&type=10-K
@@ -100,7 +101,7 @@ class Litigation10KParser(object):
             return self.SEC_WEBSITE + url
         
     @staticmethod
-    def sanitize_filing_year(year):
+    def __sanitize_filing_year(year):
         year = str(year)
         if len(year) == 2:
             if year < '50':
