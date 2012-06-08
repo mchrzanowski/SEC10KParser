@@ -4,133 +4,77 @@ Created on Jun 3, 2012
 @author: mchrzanowski
 '''
 
-from __future__ import division
 
 import os.path
 import re
 
 from bs4 import BeautifulSoup
-from urllib2 import urlopen
+
 from time import time
+from urllib2 import urlopen
 
 from HTMLTagStripper import HTMLTagStripper
- 
-
-remove_html_tags = lambda text: HTMLTagStripper.strip(text)
-remove_monetary_figures = lambda text: re.sub("\$[^\s]+", "dollar", text)
-remove_numbers = lambda text: re.sub("[0-9]+", "number", text)
-remove_email_addresses = lambda text: re.sub("[^\s]+@[^\s]+", 'emailaddr', text)
-
-def remove_urls(text):
-    text = re.sub("https?://[^\s]+", 'httpaddr', text)
-    text = re.sub("www[^\s]+", "httpaddr", text)
-    return text
-
-def get_10k_url_for_a_given_company_and_year(CIK, fiscal_year=None, filing_year=None):
+from TextSanitizer import TextSanitizer
+import LegalProceedingRegexCollection as LPRC
     
-    def get_filing_year_from_fiscal_year(fiscal_year, minimum_digits_required=2):
-        ''' 
-            10-K for year X will be filed in year X + 1 
-            take a number and return a string to preserve formatting.
-        '''
+def main():
+    
+    CIK = '0000731939'
+    
+    for i in xrange(2012, 2012 + 1):
         
-        fiscal_year = str(fiscal_year)
-        number_of_digits = len(fiscal_year)
+        filing_year = str(i)
         
-        if number_of_digits == 2 and fiscal_year == '99':
-            return '00'
-            
-        elif number_of_digits == 4 and fiscal_year == '1999':
-            return '2000'
+        print "Begin:\tCIK:%s\t%s" % (CIK, filing_year)
         
-        else:
-            return_string = str(int(fiscal_year) + 1)
-            while len(return_string) < minimum_digits_required:
-                return_string = '0' + return_string
-            return return_string
+        try:
+            l = Litigation10KParser(CIK, filing_year)
+            l.parse()
+            l.write_to_file()
+        except Exception as exception:
+            print exception
+
+class Litigation10KParser(object):
     
     SEC_WEBSITE = "http://www.sec.gov/"
     
-    if filing_year is None:
-        filing_year = get_filing_year_from_fiscal_year(fiscal_year, 2)
+    def __init__(self, CIK, filing_year):
+        self.CIK = CIK
+        self.filing_year = self.sanitize_filing_year(filing_year)
+        self.mentions = []
     
-    if len(filing_year) == 4:
-        filing_year = filing_year[2:4]
-        
-    source = urlopen(SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + str(CIK) + "&type=10-K").read()
+    def __str__(self):
+        return "Litigation10KParser object. CIK:%s Filing Year:%s Number of Mentions:%s" % (self.CIK, self.filing_year, len(self.mentions))
     
-    # remove 10-K/A URLs
-    source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
-    soup = BeautifulSoup(source, "html.parser")
+    def get_litigaton_mentions(self, text):
+        ''' the bread and butter of this class. '''
+        # first, check for LEGAL PROCEEDINGS
+        self.mentions.append(self.get_legal_proceeding_mention(text))
+    
+    def parse(self):
+        url = self.get_10k_url(self)
+        if url is not None:
+            response = urlopen(url).read()
+            response = TextSanitizer.sanitize(HTMLTagStripper.strip(response))
+            self.get_litigaton_mentions(response)
         
+        else:
+            raise Exception("ERROR:\n" + self.__str__() + "\n" + "No URL to parse for data.")
 
-    for link in soup.find_all('a', href=re.compile("/Archives/.*\-" + filing_year + "\-.*\-index\.html?$")):
-        
-        url = link['href']
-        url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
-        return SEC_WEBSITE + url
-
-
-def sanitize_html_into_working_text(html):
     
-    print 'sanitize_html_into_working_text'
-    html = remove_html_tags(html)
-    html = remove_monetary_figures(html)
-    html = remove_urls(html)
-    html = remove_email_addresses(html)
+    def get_legal_proceeding_mention(self, text):
         
-    return html
-
-def remove_irrelevant_text(text):
-    
-    print "remove_irrelevant_text"
-    
-    # remove table of contents. this is a nasty piece of data 
-    # that obeys all the same rules as the rest of the 10-K, but it has 
-    # no information other than headers.
-    # this usually has a link to the signature section at the very bottom.
-    if re.search("TABLE\s+?OF\s+?CONTENTS", text, re.I):
-        new_text = re.sub("TABLE\s+?OF\s+?CONTENTS.*?^\s*?Signature", "", text, count=1, flags=re.M | re.I | re.S)
-        if len(text) / 2 < len(new_text):
-            text = new_text
-    
-    return text
-
-def get_litigation_footnotes(text):
-    
-    def check_if_valid_hit(hit):
+        def check_if_valid_hit(hit):
+            ''' a checker to validate whether a given piece of context could
+            conceivably be a real litigation mention and not just some detritus 
+            picked up by the regexes '''
+            
+            # check to see whether it belongs to the table of contents
+            hit = re.sub("\s+", "", hit)
+            if len(hit) < 100: return False
+            return True
         
-        # check to see whether it belongs to the table of contents
-        hit = re.sub("\s+", " ", hit)
-        
-        if len(hit) < 200:
-            return False
-        
-        return True
-    
-    def default_regex():
-        ''' so many 10-Ks have the litigation item structured thusly:
-        Item 3. LITIGATION PROCEEDING
-            blah blah
-        Item 4. blah blah
-        Item 5. blah blah
-        
-        take advantage of this by using the numbers as well as the fact that 
-        the body is between these two Item headers '''
-        
-        return "^\s*Item\s*?3.*?(?=Item\s*?4)"
-    
-    def try_all_numbers_after_4():
-        ''' this regex is slightly different than the default regex: it allows
-        for more matching on the Item number. Some 10-Ks miss Item 4 for some reason.'''
-        return "^\s*Item\s*?3.*?(?=Item\s*?[5-9]+)"
-    
-    print "get_litigation_footnotes"
-        
-    if re.search("Item", text, re.I):
-        
-        for regex in (default_regex(), try_all_numbers_after_4()):
-        
+        for regex in (LPRC.default(), LPRC.try_all_numbers_after_4()):
         
             hits = re.finditer(regex, text, re.M | re.I | re.S)
             
@@ -144,59 +88,73 @@ def get_litigation_footnotes(text):
                                         
                 # dealing with legal proceedings. so, check the first 5 lines for the phrase.
                 if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
-                    return hit.group(0)        
-
-
-def write_to_file(CIK, filing_year, text):
-    ''' 
-    we'll dump our resulting data to a text file.
-    it will be structured thusly:
-       corpus
-            CIK_1
-                filing_year_1.txt
-                filing_year_2.txt
-    and so on. 
-    '''
-    
-    print "write_to_file"
-    
-    # this is normally 10 digits. make it 10 for consistent directory grammar
-    while len(CIK) < 10:   
-        CIK = '0' + CIK
-    
-    path = "./corpus/" + CIK
-    
-    if not os.path.exists(path):
-        os.makedirs(path)
-    
-    with open(path + "/" + filing_year + ".txt", 'w') as f:
-        f.write(text)
-    
-def main():
-    
-    CIK = '0000001750'
-    
-    for i in xrange(2004, 2012 + 1):
+                    return hit.group(0) 
+                
+    @classmethod
+    def get_10k_url(cls, parser):
+        ''' 
+            the SEC EDGAR website is extremely to manipulate to get a list of all the index sites for 10-K for a given company:
+                 website/gunk?action=getcompany&CIK=CIK_YOU_NEED&type=10-K
+            once you get the contents of that webpage, you can parse and get all the URLs. those go to index websites for each year.
+            you can change the ending of the index website to get the link to the comany's full text submission - exhibits and all -
+            for this year's 10-K.
+        '''
         
-        filing_year = str(i)
-    
-        url = get_10k_url_for_a_given_company_and_year(filing_year=filing_year, CIK=CIK) 
-        print url
+        filing_year = parser.filing_year[2:4]   # always 4 digits long.
         
-        if url is not None:
+        source = urlopen(cls.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + parser.CIK + "&type=10-K").read()
         
-            response = urlopen(url).read()
-            response = sanitize_html_into_working_text(response)
+        # remove 10-K/A URLs
+        source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
+        soup = BeautifulSoup(source, "html.parser")
             
-            footnote = get_litigation_footnotes(response)
-            
-            if footnote is not None:        
-                write_to_file(CIK, filing_year, footnote)
+    
+        for link in soup.find_all('a', href=re.compile("/Archives/.*\-" + filing_year + "\-.*\-index\.html?$")):
+            url = link['href']
+            url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
+            return cls.SEC_WEBSITE + url
+        
+    @classmethod
+    def sanitize_filing_year(cls, year):
+        year = str(year)
+        if len(year) == 2:
+            if year < '50':
+                year = '19' + year
             else:
-                print "No footnote returned!"
+                year = '20' + year
         
+        if len(year) == 1:
+            year = '200' + year
+             
+        return year
+    
+    def write_to_file(self):
+        ''' 
+        we'll dump our resulting data to a text file.
+        it will be structured thusly:
+           corpus
+                CIK_1
+                    filing_year_1.txt
+                    filing_year_2.txt
+        and so on. 
+        '''
         
+        CIK = self.CIK
+                
+        # this is normally 10 digits. make it 10 for consistent directory grammar
+        while len(CIK) < 10: 
+            CIK = '0' + CIK
         
+        path = "./corpus/" + CIK
+        
+        if not os.path.exists(path):
+            os.makedirs(path)
+        
+        with open(path + "/" + self.filing_year + ".txt", 'w') as f:
+            for mention in self.mentions:
+                f.write(mention)
+
+
 if __name__ == '__main__':
     start = time()
     main()
