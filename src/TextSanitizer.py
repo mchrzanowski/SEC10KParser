@@ -11,8 +11,8 @@ class TextSanitizer(object):
     def __init__(self, text):
         self.text = text
     
-    @classmethod
-    def sanitize(cls, text):
+    @staticmethod
+    def sanitize(text):
         ts = TextSanitizer(text)
         ts.clean_text()
         return ts.text

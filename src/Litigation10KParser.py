@@ -120,8 +120,8 @@ class Litigation10KParser(object):
             url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
             return cls.SEC_WEBSITE + url
         
-    @classmethod
-    def sanitize_filing_year(cls, year):
+    @staticmethod
+    def sanitize_filing_year(year):
         year = str(year)
         if len(year) == 2:
             if year < '50':
