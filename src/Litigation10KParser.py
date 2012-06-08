@@ -4,19 +4,17 @@ Created on Jun 3, 2012
 @author: mchrzanowski
 '''
 
-
-import os.path
-import re
-
 from bs4 import BeautifulSoup
-
+from HTMLTagStripper import HTMLTagStripper
+from TextSanitizer import TextSanitizer
 from time import time
 from urllib2 import urlopen
 
-from HTMLTagStripper import HTMLTagStripper
-from TextSanitizer import TextSanitizer
+import Constants
 import LegalProceedingRegexCollection as LPRC
-    
+import os.path
+import re
+
 def main():
     
     CIK = '0000731939'
@@ -36,7 +34,7 @@ def main():
 
 class Litigation10KParser(object):
     
-    SEC_WEBSITE = "http://www.sec.gov/"
+    SEC_WEBSITE = Constants.SEC_WEBSITE
     
     def __init__(self, CIK, filing_year):
         self.CIK = CIK
@@ -50,6 +48,14 @@ class Litigation10KParser(object):
         ''' the bread and butter of this class. '''
         # first, check for LEGAL PROCEEDINGS
         self.mentions.append(self.get_legal_proceeding_mention(text))
+    
+    def character_count_of_mentions(self):
+        count = 0
+        for mention in self.mentions:
+            for char in mention:
+                if char.isdigit() or char.isalpha():
+                    count += 1
+        return count
     
     def parse(self):
         url = self.get_10k_url(self)
@@ -145,7 +151,7 @@ class Litigation10KParser(object):
         while len(CIK) < 10: 
             CIK = '0' + CIK
         
-        path = "./corpus/" + CIK
+        path = Constants.PATH_TO_CORPUS + CIK
         
         if not os.path.exists(path):
             os.makedirs(path)
