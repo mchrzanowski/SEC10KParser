@@ -35,7 +35,7 @@ def unit_test(CIK, filing_year, corpus_file):
     
     change = (parser_alpha_numeric_count - file_alpha_numeric_count) / file_alpha_numeric_count
     
-    THRESHOLD = 0.2
+    THRESHOLD = Constants.REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD
             
     if abs(change) < THRESHOLD:
         result = "PASS"
