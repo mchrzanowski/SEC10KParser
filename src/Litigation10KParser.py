@@ -7,30 +7,12 @@ Created on Jun 3, 2012
 from bs4 import BeautifulSoup
 from HTMLTagStripper import HTMLTagStripper
 from TextSanitizer import TextSanitizer
-from time import time
 from urllib2 import urlopen
 
 import Constants
 import LegalProceedingRegexCollection as LPRC
 import os.path
 import re
-
-def main():
-    
-    CIK = '0000731939'
-    
-    for i in xrange(2012, 2012 + 1):
-        
-        filing_year = str(i)
-        
-        print "Begin:\tCIK:%s\t%s" % (CIK, filing_year)
-        
-        try:
-            l = Litigation10KParser(CIK, filing_year)
-            l.parse()
-            l.write_to_file()
-        except Exception as exception:
-            print exception
 
 class Litigation10KParser(object):
     
@@ -40,32 +22,29 @@ class Litigation10KParser(object):
         self.CIK = CIK
         self.filing_year = self.sanitize_filing_year(filing_year)
         self.mentions = []
-    
+        self.text = ""
+        
     def __str__(self):
         return "Litigation10KParser object. CIK:%s Filing Year:%s Number of Mentions:%s" % (self.CIK, self.filing_year, len(self.mentions))
     
-    def get_litigaton_mentions(self, text):
+    def get_litigaton_mentions(self):
         ''' the bread and butter of this class. '''
         # first, check for LEGAL PROCEEDINGS
-        self.mentions.append(self.get_legal_proceeding_mention(text))
-    
-    def character_count_of_mentions(self):
-        count = 0
-        for mention in self.mentions:
-            for char in mention:
-                if char.isdigit() or char.isalpha():
-                    count += 1
-        return count
-    
+        mentions = self.get_legal_proceeding_mention(self.text)
+        
+        if mentions is not None:
+            self.mentions.append(mentions)
+        
     def parse(self):
-        url = self.get_10k_url(self)
+        url = self.get_10k_url()
+        
         if url is not None:
             response = urlopen(url).read()
-            response = TextSanitizer.sanitize(HTMLTagStripper.strip(response))
-            self.get_litigaton_mentions(response)
+            self.text = TextSanitizer.sanitize(HTMLTagStripper.strip(response))
+            self.get_litigaton_mentions()
         
         else:
-            raise Exception("ERROR:\n" + self.__str__() + "\n" + "No URL to parse for data.")
+            raise Exception("Error encountered in:" + self.__str__() + "\n" + "No URL to parse for data.")
 
     
     def get_legal_proceeding_mention(self, text):
@@ -80,12 +59,13 @@ class Litigation10KParser(object):
             if len(hit) < 100: return False
             return True
         
-        for regex in (LPRC.default(), LPRC.try_all_numbers_after_4()):
+        for regex, flags_to_use in (LPRC.default(), LPRC.try_all_numbers_after_4(), LPRC.item_3_is_lodged_somewhere(),   \
+                                    LPRC.item_3_is_lodged_somewhere_with_no_capitals()):
         
-            hits = re.finditer(regex, text, re.M | re.I | re.S)
+            hits = re.finditer(regex, text, flags_to_use)
             
             for hit in hits:
-                                        
+                                                    
                 if not check_if_valid_hit(hit.group(0)):
                     continue
                 
@@ -96,8 +76,7 @@ class Litigation10KParser(object):
                 if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
                     return hit.group(0) 
                 
-    @classmethod
-    def get_10k_url(cls, parser):
+    def get_10k_url(self):
         ''' 
             the SEC EDGAR website is extremely to manipulate to get a list of all the index sites for 10-K for a given company:
                  website/gunk?action=getcompany&CIK=CIK_YOU_NEED&type=10-K
@@ -106,9 +85,9 @@ class Litigation10KParser(object):
             for this year's 10-K.
         '''
         
-        filing_year = parser.filing_year[2:4]   # always 4 digits long.
+        filing_year = self.filing_year[2:4]   # always 4 digits long.
         
-        source = urlopen(cls.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + parser.CIK + "&type=10-K").read()
+        source = urlopen(self.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + self.CIK + "&type=10-K").read()
         
         # remove 10-K/A URLs
         source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
@@ -118,7 +97,7 @@ class Litigation10KParser(object):
         for link in soup.find_all('a', href=re.compile("/Archives/.*\-" + filing_year + "\-.*\-index\.html?$")):
             url = link['href']
             url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
-            return cls.SEC_WEBSITE + url
+            return self.SEC_WEBSITE + url
         
     @staticmethod
     def sanitize_filing_year(year):
@@ -134,7 +113,7 @@ class Litigation10KParser(object):
              
         return year
     
-    def write_to_file(self):
+    def write_to_corpus(self):
         ''' 
         we'll dump our resulting data to a text file.
         it will be structured thusly:
@@ -145,24 +124,19 @@ class Litigation10KParser(object):
         and so on. 
         '''
         
+        if len(self.mentions) == 0:
+            raise Exception("Nothing to write!")
+        
         CIK = self.CIK
                 
         # this is normally 10 digits. make it 10 for consistent directory grammar
         while len(CIK) < 10: 
             CIK = '0' + CIK
         
-        path = Constants.PATH_TO_CORPUS + CIK
+        path = os.path.join(Constants.PATH_TO_CORPUS, CIK)
         
         if not os.path.exists(path):
             os.makedirs(path)
         
         with open(path + "/" + self.filing_year + ".txt", 'w') as f:
-            for mention in self.mentions:
-                f.write(mention)
-
-
-if __name__ == '__main__':
-    start = time()
-    main()
-    end = time()
-    print "Runtime:%r seconds" % (end - start)
+            f.writelines(self.mentions)
