@@ -13,40 +13,77 @@ import os
 import re
 import time
 
+import shutil
 
+
+def wipe_existing_failed_unit_tests():
+    if os.path.exists(Constants.PATH_TO_FAILED_UNIT_TESTS):
+        shutil.rmtree(Constants.PATH_TO_FAILED_UNIT_TESTS)
+        print "Previous failed unit tests deleted."
+        
 def run():
     start = time.time()
+    wipe_existing_failed_unit_tests()
     run_test_suite()
     end = time.time()
     print "Regression Runtime:%r seconds." % (end - start) 
+    
+
+def write_comparison_to_file(new_output, old_output, CIK, filing_year):
+    
+    path = os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, CIK)
+    
+    if not os.path.exists(path): 
+        os.makedirs(path)
+        
+    log_file = os.path.join(path, filing_year + '.txt')
+    
+    with open(log_file, 'w') as f:
+        
+        print "Writing log of failed unit test to %s" % log_file
+        
+        f.write("OLD:\n")
+        f.writelines(old_output)
+        f.write("\n")
+        f.write("================================================")
+        f.write("\n")
+        f.write("NEW:\n")
+        f.writelines(new_output)
+
+
+def get_alpha_numeric_count(text):
+    count = 0
+    for char in text:
+        if char.isalpha() or char.isdigit():
+            count += 1
+    
+    return count    
 
 def unit_test(CIK, filing_year, corpus_file):
     
-    file_alpha_numeric_count = 0
     with open(corpus_file) as f:
-        for line in f:
-            for char in line:
-                if char.isalpha() or char.isdigit():
-                    file_alpha_numeric_count += 1
-    
-    parser = Litigation10KParser(CIK, filing_year)
-    parser.parse()
-    parser_alpha_numeric_count = parser.character_count_of_mentions()
-    
-    change = (parser_alpha_numeric_count - file_alpha_numeric_count) / file_alpha_numeric_count
-    
-    THRESHOLD = Constants.REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD
+        
+        text_from_file = ''.join(line for line in f)
+        
+        file_alpha_numeric_count = get_alpha_numeric_count(text_from_file)
+        
+        parser = Litigation10KParser(CIK, filing_year)
+        parser.parse()
+        
+        parser_alpha_numeric_count = 0
+        for hit in parser.mentions: 
+            parser_alpha_numeric_count += get_alpha_numeric_count(hit)
             
-    if abs(change) < THRESHOLD:
-        result = "PASS"
-    else:
-        result = "FAIL"
+        change = (parser_alpha_numeric_count - file_alpha_numeric_count) / file_alpha_numeric_count
+                    
+        result = abs(change) < Constants.REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD
     
     print "CIK:%r, Year:%r, New Count:%r, " % (CIK, filing_year, parser_alpha_numeric_count),
-    print "Corpus Count:%r, Result:%r" % (file_alpha_numeric_count, result)
-        
-        
-
+    print "Corpus Count:%r, Passed:%r" % (file_alpha_numeric_count, result)
+    
+    if result is False:
+        write_comparison_to_file(parser.mentions, text_from_file, CIK, filing_year)
+    
 def run_test_suite():
     ''' 
         go through every single CIK,Year pair and instantiate new Litigation10KParser classes
@@ -67,7 +104,7 @@ def run_test_suite():
             for filing_year_file in os.listdir(os.path.join(path, potential_cik)):
                 path_to_test = os.path.join(path, potential_cik, filing_year_file)
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
-                pool.apply_async(unit_test, args=(potential_cik, filing_year, path_to_test,))                
+                pool.apply_async(unit_test, args=(potential_cik, filing_year, path_to_test))                
                 
     pool.close()
     pool.join()
