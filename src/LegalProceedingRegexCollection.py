@@ -9,7 +9,7 @@ import re
 
 def get_relevant_regexes():
     return __default(), __item_3_is_lodged_somewhere(), __item_3_is_lodged_somewhere_with_no_capitals(),    \
-         __try_all_numbers_after_4_and_executive_listing()
+         __try_all_numbers_after_4_and_executive_listing(), __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines()
 
 def __default():
     ''' so many 10-Ks have the litigation item structured thusly:
@@ -54,4 +54,16 @@ def __item_3_is_lodged_somewhere_with_no_capitals():
     spaces and punctuation just before the mention of "item 3" '''
     
     return "(?<=[\.\?\!]\s)\s+?ITEM\s*?3.*?(?=ITEM\s*?4[^0-9])", re.I | re.M | re.S
+
+def __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines():
+    '''
+        CIK:0000086144    2012
+        Sometimes, the HTML parsing was so horrible that there are no more newlines. This forces my rules to screw up
+        as there's little meaningful spacing.
+        In this case, remove the restriction that there has to be spaces just before the mention of "item 3"
+        but after punctuation.
+    '''
+    return "(?<=[\.\?\!])\s*ITEM\s*?3.*?(?=ITEM\s*?4[^0-9])", re.I | re.M | re.S
+
+
     
