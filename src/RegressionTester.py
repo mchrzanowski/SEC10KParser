@@ -17,7 +17,8 @@ import Utilities
 
 def wipe_existing_failed_unit_tests():
     if os.path.exists(Constants.PATH_TO_FAILED_UNIT_TESTS):
-        shutil.rmtree(Constants.PATH_TO_FAILED_UNIT_TESTS)
+        for sub_folder in os.listdir(Constants.PATH_TO_FAILED_UNIT_TESTS):
+            shutil.rmtree(os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, sub_folder))
         print "Previous failed unit tests deleted."
         
 def run():
@@ -85,7 +86,7 @@ def run_test_suite():
     
     path = Constants.PATH_TO_CORPUS
     
-    pool = multiprocessing.Pool()
+    pool = multiprocessing.Pool(processes=10)
     
     contains_non_numeric_chars_test = re.compile("[^0-9]")
     get_filing_year_from_corpus_file = re.compile("\.txt")
@@ -96,7 +97,7 @@ def run_test_suite():
                 path_to_test = os.path.join(path, potential_cik, filing_year_file)
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
                 pool.apply_async(unit_test, args=(potential_cik, filing_year, path_to_test))                
-                
+    
     pool.close()
     pool.join()
                     

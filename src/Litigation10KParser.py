@@ -12,8 +12,11 @@ from urllib2 import urlopen
 
 import Constants
 import LegalProceedingRegexCollection as LPRC
+import nltk
 import os.path
 import re
+
+import Utilities
 
 class Litigation10KParser(object):
     
@@ -56,37 +59,55 @@ class Litigation10KParser(object):
                 conceivably be a real litigation mention and not just some detritus 
                 picked up by the regexes from the table of contents or something
             '''
-            
             # check to see whether it belongs to the table of contents
-            tokens = hit.split()
-            for token in list(tokens):
+            hit_is_acceptable = False
+            for token in nltk.word_tokenize(hit):
                 
-                # remove numbers - they're too meaningless to care about - as well as words that *must*
-                # be there.
-                if token.isdigit() or re.search("LEGAL", token, re.I) or re.search("PROCEEDING", token, re.I) \
-                or re.search("ITEM", token, re.I):
-                    tokens.remove(token)
-            
-            if len(tokens) < Constants.MINIMUM_LITITGATION_MENTION_WORD_NUMBER:
-                return False
-
-            return True
+                if re.match(LPRC.is_hit_valid(), token):
+                    hit_is_acceptable = True
+                    break
+                
+            return hit_is_acceptable
         
-        for regex, flags_to_use in LPRC.get_relevant_regexes():
-            
-            hits = re.finditer(regex, text, flags_to_use)
-                        
-            for hit in hits:
-                                                                    
-                if not check_if_valid_hit(hit.group(0)):
+        results = set()
+        
+        for regex, anti_regex in LPRC.get_relevant_regexes():
+                                                
+            for hit in re.finditer(regex, text):
+                
+                candidate = hit.group(0) 
+                
+                if anti_regex is not None and re.search(anti_regex, candidate):
+                    continue
+                                                                                                                                    
+                if not check_if_valid_hit(candidate):
                     continue
                 
                 # legal proceeding is always mentioned very, very close to the start of the real section
-                heading = ''.join(group for group in hit.group(0))[:200]
-                                        
+                heading = ''.join(word for word in nltk.word_tokenize(candidate)[:10])
+                                                        
                 # dealing with legal proceedings. so, check the first 5 lines for the phrase.
-                if re.search("Legal\s+?Proceeding", heading, re.I | re.M):
-                    return hit.group(0) 
+                if re.search("LEGAL", heading, re.I) and re.search("PROCEEDING", heading, re.I):
+                    results.add(candidate)
+                    
+        if len(results) > 0:
+            min_count = 0
+            return_result = None
+            
+            for result in results:
+                
+                count = Utilities.get_alpha_numeric_count(result)
+                
+                if min_count == 0:
+                    min_count = count
+                    return_result = result
+                
+                elif count < min_count:
+                    min_count = count
+                    return_result = result
+            
+            return return_result
+                
                 
     def __get_10k_url(self):
         ''' 

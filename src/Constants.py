@@ -6,8 +6,6 @@ Created on Jun 8, 2012
 
 CIK_CODE_LENGTH = 10
 
-MINIMUM_LITITGATION_MENTION_WORD_NUMBER = 10
-
 PATH_TO_CORPUS = './corpus/'
 
 PATH_TO_FAILED_UNIT_TESTS = './failed_tests/'
