@@ -14,6 +14,7 @@ def __default():
     ''' so many 10-Ks have the litigation item structured thusly:
         Item 3. LITIGATION PROCEEDING
             blah blah
+        (potential)Item 3A. blah blah
         Item 4. blah blah
         Item 5. blah blah
         
