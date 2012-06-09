@@ -50,14 +50,24 @@ class Litigation10KParser(object):
     
     def __get_legal_proceeding_mention(self, text):
         
-        def check_if_valid_hit(hit, original_text):
-            ''' a checker to validate whether a given piece of context could
-            conceivably be a real litigation mention and not just some detritus 
-            picked up by the regexes '''
+        def check_if_valid_hit(hit):
+            ''' 
+                a checker to validate whether a given piece of context could
+                conceivably be a real litigation mention and not just some detritus 
+                picked up by the regexes from the table of contents or something
+            '''
             
             # check to see whether it belongs to the table of contents
-            hit = re.sub("\s+", "", hit)
-            if len(hit) < Constants.MINIMUM_LITITGATION_MENTION_LENGTH: 
+            tokens = hit.split()
+            for token in list(tokens):
+                
+                # remove numbers - they're too meaningless to care about - as well as words that *must*
+                # be there.
+                if token.isdigit() or re.search("LEGAL", token, re.I) or re.search("PROCEEDING", token, re.I) \
+                or re.search("ITEM", token, re.I):
+                    tokens.remove(token)
+            
+            if len(tokens) < Constants.MINIMUM_LITITGATION_MENTION_WORD_NUMBER:
                 return False
 
             return True
@@ -65,10 +75,10 @@ class Litigation10KParser(object):
         for regex, flags_to_use in LPRC.get_relevant_regexes():
             
             hits = re.finditer(regex, text, flags_to_use)
-            
+                        
             for hit in hits:
-                                                    
-                if not check_if_valid_hit(hit.group(0), text):
+                                                                    
+                if not check_if_valid_hit(hit.group(0)):
                     continue
                 
                 # legal proceeding is always mentioned very, very close to the start of the real section

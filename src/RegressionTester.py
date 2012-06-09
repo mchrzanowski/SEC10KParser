@@ -11,10 +11,9 @@ import Constants
 import multiprocessing
 import os
 import re
-import time
-
 import shutil
-
+import time
+import Utilities
 
 def wipe_existing_failed_unit_tests():
     if os.path.exists(Constants.PATH_TO_FAILED_UNIT_TESTS):
@@ -51,28 +50,20 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
         f.writelines(new_output)
 
 
-def get_alpha_numeric_count(text):
-    count = 0
-    for char in text:
-        if char.isalpha() or char.isdigit():
-            count += 1
-    
-    return count    
-
 def unit_test(CIK, filing_year, corpus_file):
     
     with open(corpus_file) as f:
         
         text_from_file = ''.join(line for line in f)
         
-        file_alpha_numeric_count = get_alpha_numeric_count(text_from_file)
+        file_alpha_numeric_count = Utilities.get_alpha_numeric_count(text_from_file)
         
         parser = Litigation10KParser(CIK, filing_year)
         parser.parse()
         
         parser_alpha_numeric_count = 0
         for hit in parser.mentions: 
-            parser_alpha_numeric_count += get_alpha_numeric_count(hit)
+            parser_alpha_numeric_count += Utilities.get_alpha_numeric_count(hit)
             
         change = (parser_alpha_numeric_count - file_alpha_numeric_count) / file_alpha_numeric_count
                     

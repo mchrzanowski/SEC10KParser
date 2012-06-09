@@ -6,7 +6,6 @@ Created on Jun 7, 2012
 
 import re
 
-
 def get_relevant_regexes():
     return __default(), __item_3_is_lodged_somewhere(), __item_3_is_lodged_somewhere_with_no_capitals(),    \
         __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines(), __try_all_numbers_after_4_and_executive_listing()
@@ -22,21 +21,21 @@ def __default():
         the body is between these two Item headers 
     '''
         
-    return "^\s*Item\s*?3.*?(?=\n\s*Item\s*?4[^0-9])", re.I | re.M | re.S
+    return "^\s*Item\s*?3.*?(?=\n\s*Item\s*?(3A|4)[^0-9])", re.I | re.M | re.S
 
 def __try_all_numbers_after_4_and_executive_listing():
     '''
          this regex is slightly different than the default regex: it allows
         for more matching on the Item number. Some 10-Ks miss Item 4 for some reason.
     '''
-    return "^\s*Item\s*?3.*?(?=\n\s*(Item\s*?[5-6]|EXECUTIVE.*?OFFICER))", re.I | re.M | re.S
+    return "^\s*Item\s*?3.*?(?=(Item\s*?[5-6]|EXECUTIVE.*?OFFICERS?))", re.I | re.M | re.S
 
 def __item_3_is_last_item():
     '''
         sometimes, item 3 is the last item. after this, what usually follows is a mention
         of the executive committee. so, go from Item 3 to that instead
     '''
-    return "^\s*Item\s*?3.*?\s*(?=EXECUTIVE.*?OFFICER)", re.I | re.M | re.S
+    return "^\s*Item\s*?3.*?.*?(?=EXECUTIVE.*?OFFICERS?)", re.I | re.M | re.S
     
 
 def __item_3_is_lodged_somewhere():
@@ -46,14 +45,14 @@ def __item_3_is_lodged_somewhere():
         on ITEM 3 somewhere in the text. we assume that item is in all capitals
         to distinguish this from the case of Item 3 being mentioned somewhere else
     '''
-    return "ITEM\s*?3.*?(?=ITEM\s*?4[^0-9])", re.M | re.S
+    return "ITEM\s*?3.*?(?=ITEM\s*?(3A|4)[^0-9])", re.M | re.S
 
 
 def __item_3_is_lodged_somewhere_with_no_capitals():
     ''' similar to item_3_is_lodged_somewhere(), but capitals didn't help us. try to see whether there are multiple
     spaces and punctuation just before the mention of "item 3" '''
     
-    return "(?<=[\.\?\!]\s)\s+?ITEM\s*?3.*?(?=ITEM\s*?4[^0-9])", re.I | re.M | re.S
+    return "(?<=[\.\?\!]\s)\s+?ITEM\s*?3.*?(?=ITEM\s*?(3A|4)[^0-9])", re.I | re.M | re.S
 
 def __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines():
     '''
@@ -63,7 +62,7 @@ def __item_3_is_lodged_somewhere_with_no_capitals_and_no_newlines():
         In this case, remove the restriction that there has to be spaces just before the mention of "item 3"
         but after punctuation.
     '''
-    return "(?<=[\.\?\!])\s*ITEM\s*?3.*?(?=ITEM\s*?4[^0-9])", re.I | re.M | re.S
+    return "(?<=[\.\?\!])\s*ITEM\s*?3.*?(?=ITEM\s*?(3A|4)[^0-9])", re.I | re.M | re.S
 
 
     
