@@ -88,11 +88,10 @@ def run_test_suite():
     
     pool = multiprocessing.Pool(processes=10)
     
-    contains_non_numeric_chars_test = re.compile("[^0-9]")
     get_filing_year_from_corpus_file = re.compile("\.txt")
     
     for potential_cik in os.listdir(path):
-        if not re.search(contains_non_numeric_chars_test, potential_cik):
+        if potential_cik.isdigit():
             for filing_year_file in os.listdir(os.path.join(path, potential_cik)):
                 path_to_test = os.path.join(path, potential_cik, filing_year_file)
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
