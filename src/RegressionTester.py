@@ -86,7 +86,7 @@ def run_test_suite():
     
     path = Constants.PATH_TO_CORPUS
     
-    pool = multiprocessing.Pool(processes=10)
+    pool = multiprocessing.Pool()
     
     get_filing_year_from_corpus_file = re.compile("\.txt")
     
@@ -95,7 +95,7 @@ def run_test_suite():
             for filing_year_file in os.listdir(os.path.join(path, potential_cik)):
                 path_to_test = os.path.join(path, potential_cik, filing_year_file)
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
-                pool.apply_async(unit_test, args=(potential_cik, filing_year, path_to_test))                
+                pool.apply_async(unit_test, args=(potential_cik, filing_year, path_to_test))   
     
     pool.close()
     pool.join()
