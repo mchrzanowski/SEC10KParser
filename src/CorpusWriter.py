@@ -52,7 +52,7 @@ def write_processed_url_data_to_file(text, CIK, filing_year):
         with open(path_with_file, 'w') as f:
             f.writelines(text)
 
-def write_to_corpus(mentions, CIK, filing_year):
+def write_to_corpus(mentions, CIK, filing_year,force_write=True):
     ''' 
     we'll dump our resulting data to a text file.
     it will be structured thusly:
@@ -77,13 +77,13 @@ def write_to_corpus(mentions, CIK, filing_year):
         
     path_with_file = os.path.join(path, filing_year + ".txt")
     
-    if not os.path.exists(path_with_file):
+    if os.path.exists(path_with_file) and force_write or not os.path.exists(path_with_file):
         with open(path_with_file, 'w') as f:
             f.writelines(mentions)
 
 def main():
     
-    CIK = '0000812348'
+    CIK = '0000216228'
     
     for i in xrange(2004, 2012 + 1):
                 
