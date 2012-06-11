@@ -18,10 +18,41 @@ import os.path
 import re
 import Utilities
 
+def get_10k_url(filing_year, CIK):
+        ''' 
+            the SEC EDGAR website is extremely to manipulate to get a list of all the index sites for 10-K for a given company:
+                 website/gunk?action=getcompany&CIK=CIK_YOU_NEED&type=10-K
+            once you get the contents of that webpage, you can parse and get all the URLs. those go to index websites for each year.
+            you can change the ending of the index website to get the link to the comany's full text submission - exhibits and all -
+            for this year's 10-K.
+        '''
+        
+        filing_year = filing_year[2:4]   # always 4 digits long.
+        
+        source = urlopen(Constants.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + CIK + "&type=10-K").read()
+        
+        # remove 10-K/A URLs
+        source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
+        soup = BeautifulSoup(source, "html.parser")
+            
+    
+        for link in soup.find_all('a', href=re.compile("/Archives/.*\-" + filing_year + "\-.*\-index\.html?$")):
+            url = link['href']
+            url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
+            return Constants.SEC_WEBSITE + url
+
+def write_processed_url_data_to_file(text, path_to_file):
+    
+    path, _ = os.path.split(path_to_file)
+    
+    if not os.path.exists(path): 
+        os.mkdir(path)
+    
+    with open(path_to_file, 'w') as f:
+        f.writelines(text)
+
 class Litigation10KParser(object):
-    
-    SEC_WEBSITE = Constants.SEC_WEBSITE
-    
+        
     def __init__(self, CIK, filing_year):
         self.CIK = CIK
         self.filing_year = self.__sanitize_filing_year(filing_year)
@@ -40,35 +71,47 @@ class Litigation10KParser(object):
             self.mentions.append(mentions)
         
     def parse(self):
-        url = self.__get_10k_url()
         
-        if url is not None:
-            response = urlopen(url).read()
-            
-            # THE PARSING GUIDE:
-            # Part 1: Fix horrible HTML code into something proper.
-            # Part 2: Parse the tagging and get to the inner text goodness.
-            
-            # Part 1
-            # step 1: go from a string to a lxml-specific object. this is to control the encoding. 
-            # step 2: prettify the html.
-            # step 3: go from the lxml object to an ascii-encoded string.
-            response = lxml.html.fromstring(response)
-            response = lxml.html.clean.clean_html(response)
-            response = lxml.html.tostring(response, encoding="ascii")
-            
-            # Part 2
-            # step 4: strip the HTML tags.
-            # step 5: remove terms that are not regularized (eg, email addresses) 
-            #         and replace with a regularized token (eg, emailaddr)
-            self.text = HTMLTagStripper.strip(response)            
-            self.text = TextSanitizer.sanitize(self.text)
-            
-            self.__get_litigaton_mentions()
+        candidate_path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, self.CIK, self.filing_year + ".txt")
+
+        if os.path.exists(candidate_path):
+            with open(candidate_path, 'r') as f:
+                self.text = f.read()
         
         else:
-            raise Exception("Error encountered in:" + self.__str__() + "\n" + "No URL to parse for data.")
+            
+            url = get_10k_url(CIK=self.CIK, filing_year=self.filing_year)
+            
+            if url is not None:
+                response = urlopen(url).read()
+                
+                # THE PARSING GUIDE:
+                # Part 1: Fix horrible HTML code into something proper.
+                # Part 2: Parse the tagging and get to the inner text goodness.
+                
+                # Part 1
+                # step 1: go from a string to a lxml-specific object. this is to control the encoding. 
+                # step 2: prettify the html.
+                # step 3: go from the lxml object to an ascii-encoded string.
+                response = lxml.html.fromstring(response)
+                response = lxml.html.clean.clean_html(response)
+                response = lxml.html.tostring(response, encoding="ascii")
+                
+                # Part 2
+                # step 4: strip the HTML tags.
+                # step 5: remove terms that are not regularized (eg, email addresses) 
+                #         and replace with a regularized token (eg, emailaddr)
+                self.text = HTMLTagStripper.strip(response)            
+                self.text = TextSanitizer.sanitize(self.text)
+                
+                write_processed_url_data_to_file(self.text, candidate_path)            
+            
+            else:
+                raise Exception("Error encountered in:" + self.__str__() + "\n" + "No URL to parse for data.")
+            
+        self.__get_litigaton_mentions()
 
+ 
     
     def __get_legal_proceeding_mention(self, text):
         
@@ -127,31 +170,7 @@ class Litigation10KParser(object):
                     return_result = result
             
             return return_result
-                
-                
-    def __get_10k_url(self):
-        ''' 
-            the SEC EDGAR website is extremely to manipulate to get a list of all the index sites for 10-K for a given company:
-                 website/gunk?action=getcompany&CIK=CIK_YOU_NEED&type=10-K
-            once you get the contents of that webpage, you can parse and get all the URLs. those go to index websites for each year.
-            you can change the ending of the index website to get the link to the comany's full text submission - exhibits and all -
-            for this year's 10-K.
-        '''
-        
-        filing_year = self.filing_year[2:4]   # always 4 digits long.
-        
-        source = urlopen(self.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + self.CIK + "&type=10-K").read()
-        
-        # remove 10-K/A URLs
-        source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
-        soup = BeautifulSoup(source, "html.parser")
-            
     
-        for link in soup.find_all('a', href=re.compile("/Archives/.*\-" + filing_year + "\-.*\-index\.html?$")):
-            url = link['href']
-            url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
-            return self.SEC_WEBSITE + url
-        
     @staticmethod
     def __sanitize_filing_year(year):
         year = str(year)
@@ -166,30 +185,4 @@ class Litigation10KParser(object):
              
         return year
     
-    def write_to_corpus(self):
-        ''' 
-        we'll dump our resulting data to a text file.
-        it will be structured thusly:
-           corpus
-                CIK_1
-                    filing_year_1.txt
-                    filing_year_2.txt
-        and so on. 
-        '''
-        
-        if len(self.mentions) == 0:
-            raise Exception("Nothing to write!")
-        
-        CIK = self.CIK
-                
-        # this is normally 10 digits. make it 10 for consistent directory grammar
-        while len(CIK) < Constants.CIK_CODE_LENGTH: 
-            CIK = '0' + CIK
-        
-        path = os.path.join(Constants.PATH_TO_CORPUS, CIK)
-        
-        if not os.path.exists(path):
-            os.makedirs(path)
-        
-        with open(path + "/" + self.filing_year + ".txt", 'w') as f:
-            f.writelines(self.mentions)
+    
