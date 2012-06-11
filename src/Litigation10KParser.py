@@ -12,10 +12,10 @@ from urllib2 import urlopen
 
 import Constants
 import LegalProceedingRegexCollection as LPRC
+import lxml.html.clean
 import nltk
 import os.path
 import re
-
 import Utilities
 
 class Litigation10KParser(object):
@@ -44,7 +44,26 @@ class Litigation10KParser(object):
         
         if url is not None:
             response = urlopen(url).read()
-            self.text = TextSanitizer.sanitize(HTMLTagStripper.strip(response))
+            
+            # THE PARSING GUIDE:
+            # Part 1: Fix horrible HTML code into something proper.
+            # Part 2: Parse the tagging and get to the inner text goodness.
+            
+            # Part 1
+            # step 1: go from a string to a lxml-specific object. this is to control the encoding. 
+            # step 2: prettify the html.
+            # step 3: go from the lxml object to an ascii-encoded string.
+            response = lxml.html.fromstring(response)
+            response = lxml.html.clean.clean_html(response)
+            response = lxml.html.tostring(response, encoding="ascii")
+            
+            # Part 2
+            # step 4: strip the HTML tags.
+            # step 5: remove terms that are not regularized (eg, email addresses) 
+            #         and replace with a regularized token (eg, emailaddr)
+            self.text = HTMLTagStripper.strip(response)            
+            self.text = TextSanitizer.sanitize(self.text)
+            
             self.__get_litigaton_mentions()
         
         else:
@@ -76,18 +95,19 @@ class Litigation10KParser(object):
             for hit in re.finditer(regex, text):
                 
                 candidate = hit.group(0) 
-                
+                                
                 if anti_regex is not None and re.search(anti_regex, candidate):
                     continue
                                                                                                                                     
                 if not check_if_valid_hit(candidate):
                     continue
-                
+                                
                 # legal proceeding is always mentioned very, very close to the start of the real section
                 heading = ''.join(word for word in nltk.word_tokenize(candidate)[:10])
                                                         
                 # dealing with legal proceedings. so, check the first 5 lines for the phrase.
-                if re.search("LEGAL", heading, re.I) and re.search("PROCEEDING", heading, re.I):
+                if re.search("LEGAL", heading, re.I) and re.search("PROCEEDING", heading, re.I) \
+                and not re.search("PROCEEDINGS?\s*?\)", heading, re.I):
                     results.add(candidate)
                     
         if len(results) > 0:
