@@ -8,54 +8,25 @@ from __future__ import division
 from Litigation10KParser import Litigation10KParser
 
 import Constants
+import CorpusWriter
 import multiprocessing
 import os
 import re
-import shutil
 import time
 import Utilities
 
-def wipe_existing_failed_unit_tests():
-    if os.path.exists(Constants.PATH_TO_FAILED_UNIT_TESTS):
-        for sub_folder in os.listdir(Constants.PATH_TO_FAILED_UNIT_TESTS):
-            shutil.rmtree(os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, sub_folder))
-        print "Previous failed unit tests deleted."
-        
 def run():
     start = time.time()
-    wipe_existing_failed_unit_tests()
+    CorpusWriter.wipe_existing_failed_unit_tests()
     run_test_suite()
     end = time.time()
     print "Regression Runtime:%r seconds." % (end - start) 
-    
-
-def write_comparison_to_file(new_output, old_output, CIK, filing_year):
-    
-    path = os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, CIK)
-    
-    if not os.path.exists(path): 
-        os.makedirs(path)
-        
-    log_file = os.path.join(path, filing_year + '.txt')
-    
-    with open(log_file, 'w') as f:
-        
-        print "Writing log of failed unit test to %s" % log_file
-        
-        f.write("OLD:\n")
-        f.writelines(old_output)
-        f.write("\n")
-        f.write("================================================")
-        f.write("\n")
-        f.write("NEW:\n")
-        f.writelines(new_output)
-
 
 def unit_test(CIK, filing_year, corpus_file):
     
     with open(corpus_file) as f:
         
-        text_from_file = ''.join(line for line in f)
+        text_from_file = f.read()
         
         file_alpha_numeric_count = Utilities.get_alpha_numeric_count(text_from_file)
         
@@ -74,7 +45,7 @@ def unit_test(CIK, filing_year, corpus_file):
     print "Corpus Count:%r, Passed:%r" % (file_alpha_numeric_count, result)
     
     if result is False:
-        write_comparison_to_file(parser.mentions, text_from_file, CIK, filing_year)
+        CorpusWriter.write_comparison_to_file(parser.mentions, text_from_file, CIK, filing_year)
     
 def run_test_suite():
     ''' 
@@ -91,7 +62,7 @@ def run_test_suite():
     get_filing_year_from_corpus_file = re.compile("\.txt")
     
     for potential_cik in os.listdir(path):
-        if potential_cik.isdigit():
+        if os.path.isdir(os.path.join(path, potential_cik)):
             for filing_year_file in os.listdir(os.path.join(path, potential_cik)):
                 path_to_test = os.path.join(path, potential_cik, filing_year_file)
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)

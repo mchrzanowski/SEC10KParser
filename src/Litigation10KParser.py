@@ -41,15 +41,6 @@ def get_10k_url(filing_year, CIK):
             url = re.sub("\-index\.html?$", ".txt", url, re.I)       # replace the last portion with ".txt" for the full 10-K filing.
             return Constants.SEC_WEBSITE + url
 
-def write_processed_url_data_to_file(text, path_to_file):
-    
-    path, _ = os.path.split(path_to_file)
-    
-    if not os.path.exists(path): 
-        os.mkdir(path)
-    
-    with open(path_to_file, 'w') as f:
-        f.writelines(text)
 
 class Litigation10KParser(object):
         
@@ -102,9 +93,7 @@ class Litigation10KParser(object):
                 # step 5: remove terms that are not regularized (eg, email addresses) 
                 #         and replace with a regularized token (eg, emailaddr)
                 self.text = HTMLTagStripper.strip(response)            
-                self.text = TextSanitizer.sanitize(self.text)
-                
-                write_processed_url_data_to_file(self.text, candidate_path)            
+                self.text = TextSanitizer.sanitize(self.text)            
             
             else:
                 raise Exception("Error encountered in:" + self.__str__() + "\n" + "No URL to parse for data.")

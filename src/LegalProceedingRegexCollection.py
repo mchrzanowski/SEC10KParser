@@ -26,6 +26,7 @@ def get_relevant_regexes():
         __item_3_is_lodged_somewhere_and_is_last_case_insensitive_with_punctuation_no_spaces(),             \
         __item_3_is_lodged_somewhere_assume_legal_proceeding_is_capitalized(),  \
         __item_3_is_lodged_somewhere_assume_item_is_capitalized(),      \
+        __item_3_is_just_fine_but_not_item_4_case_insensitive()
         
 
 def __default_case_sensitive():
@@ -128,6 +129,9 @@ def __item_3_is_lodged_somewhere_assume_legal_proceeding_is_capitalized():
 
 def __item_3_is_lodged_somewhere_assume_item_is_capitalized():
     return re.compile("ITEM\s*?3[\s.]*?[lL][eE][gG][aA][lL]\s*?[pP][rR][oO][cC][eE][eE][dD][iI][nN][gG].*?(?=ITEM\s*?4)", re.M | re.S), None
+
+def __item_3_is_just_fine_but_not_item_4_case_insensitive():
+    return re.compile("^\s*ITEM\s*?3[.\s]*?[^,].*?(?=\s*?ITEM\s*?(3A|4))", re.I | re.M | re.S), None
 
 def is_hit_valid():
     ''' a valid legal proceeding mention - as opposed to something detritus - always has certain words. check for these '''
