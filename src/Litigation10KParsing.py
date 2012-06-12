@@ -81,12 +81,11 @@ def parse(CIK, filing_year, processed_website_data=None):
         results.processed_text = processed_website_data
     
     else:
-        url = get_10k_url(CIK=CIK, filing_year=filing_year)
+        url = get_10k_url(CIK=results.CIK, filing_year=results.filing_year)
         
         if url is not None:
             response = urlopen(url).read()
-            results.processed_text = convert_html_into_clean_text(response)
-                    
+            results.processed_text = convert_html_into_clean_text(response)                    
         else:
             raise Exception("Error: No URL to parse for data.")
     

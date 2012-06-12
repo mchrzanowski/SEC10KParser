@@ -69,7 +69,7 @@ def write_to_legal_proceeding_corpus(data, CIK, filing_year, force_write=True):
     and so on. 
     '''
     
-    if len(data) == 0:
+    if data is None or len(data) == 0:
         raise Exception("Nothing to write!")
                 
     # this is normally 10 digits. make it 10 for consistent directory grammar

@@ -135,7 +135,7 @@ def _item_3_is_just_fine_but_not_item_4_case_insensitive():
 
 def common_words_in_legitimate_legal_proceeding_hits():
     ''' a valid legal proceeding mention - as opposed to something detritus - always has certain words. check for these '''
-    return re.compile("(WE|SEE|US|ARE|REFER|APPEAR|REGARD|has|had|is|was|include|none)", re.I)
+    return re.compile("(WE|SEE|US|ARE|REFER|APPEAR|REGARD|has|had|is|was|include|none|become|became|will)", re.I)
 
 def good_patterns_and_bad_patterns_in_litigation_proceeding_headers():
     return [re.compile("LEGAL", re.I), re.compile("PROCEEDING", re.I)], [re.compile("PROCEEDINGS?\s*?\)", re.I)]

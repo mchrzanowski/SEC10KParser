@@ -10,23 +10,31 @@ import time
 
 def main():
     
-    CIK = '0000028917'
+    CIK = '0000045919'
     
-    for i in xrange(2004, 2012 + 1):
+    for i in xrange(2004, 2004 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, i)
         
         try:
             
-            processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, i)
+#            processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, i)
             
-            results = Litigation10KParsing.parse(CIK=CIK, filing_year=i, processed_data)   
-            
+            processed_data = None                   
+            results = Litigation10KParsing.parse(CIK, i, processed_website_data=processed_data)   
+                        
             #for mention in l.mentions: print mention    
             if processed_data is None:        
                 CorpusAccess.write_processed_url_data_to_file(data=results.processed_text, CIK=results.CIK, filing_year=results.filing_year)
+                print "Wrote processed url data"
+            else:
+                print "skipping writing processed url data."
             
-            CorpusAccess.write_to_legal_proceeding_corpus(CIK=results.CIK, data=results.legal_proceeding_mention, filing_year=results.filing_year)
+            if results.legal_proceeding_mention is not None:
+                CorpusAccess.write_to_legal_proceeding_corpus(CIK=results.CIK, data=results.legal_proceeding_mention, filing_year=results.filing_year)
+                print "Wrote legal proceeding data to corpus."
+            else:
+                print "NOTHING TO WRITE!"
 
             
         except Exception as exception:
