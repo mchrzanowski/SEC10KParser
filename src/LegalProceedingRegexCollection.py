@@ -6,7 +6,10 @@ Created on Jun 7, 2012
 
 import re
 
-def get_relevant_regexes():
+def get_legitimate_header_regex():
+    return []
+
+def get_document_parsing_regexes():
     return __default_case_sensitive(),                                                  \
          __default_case_insensitive(),                                                  \
         __item_4_is_skipped_case_insensitive(),                                         \
@@ -133,6 +136,9 @@ def __item_3_is_lodged_somewhere_assume_item_is_capitalized():
 def __item_3_is_just_fine_but_not_item_4_case_insensitive():
     return re.compile("^\s*ITEM\s*?3[.\s]*?[^,].*?(?=\s*?ITEM\s*?(3A|4))", re.I | re.M | re.S), None
 
-def is_hit_valid():
+def common_words_in_legitimate_legal_proceeding_hits():
     ''' a valid legal proceeding mention - as opposed to something detritus - always has certain words. check for these '''
     return re.compile("(WE|SEE|US|ARE|REFER|APPEAR|REGARD|has|had|is|was|include|none)", re.I)
+
+def good_patterns_and_bad_patterns_in_litigation_proceeding_headers():
+    return [re.compile("LEGAL", re.I), re.compile("PROCEEDING", re.I)], [re.compile("PROCEEDINGS?\s*?\)", re.I)]

@@ -4,13 +4,19 @@ Created on Jun 8, 2012
 @author: mchrzanowski
 '''
 
-from time import time
-
-from Litigation10KParser import Litigation10KParser
-
 import os.path
 import shutil
 import Constants
+
+def get_processed_website_data_from_corpus(CIK, filing_year):
+       
+    candidate_path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK, str(filing_year) + ".txt")
+    
+    if os.path.exists(candidate_path):
+        with open(candidate_path, 'r') as f:
+            return f.read()
+    
+    return None
 
 def wipe_existing_failed_unit_tests():
     if os.path.exists(Constants.PATH_TO_FAILED_UNIT_TESTS):
@@ -39,7 +45,7 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
         f.write("NEW:\n")
         f.writelines(new_output)
 
-def write_processed_url_data_to_file(text, CIK, filing_year):
+def write_processed_url_data_to_file(data, CIK, filing_year):
     
     path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK) 
     
@@ -50,27 +56,27 @@ def write_processed_url_data_to_file(text, CIK, filing_year):
     
     if not os.path.exists(path_with_file):
         with open(path_with_file, 'w') as f:
-            f.writelines(text)
+            f.writelines(data)
 
-def write_to_corpus(mentions, CIK, filing_year,force_write=True):
+def write_to_legal_proceeding_corpus(data, CIK, filing_year, force_write=True):
     ''' 
     we'll dump our resulting data to a text file.
     it will be structured thusly:
-       corpus
+       legal_proceeding
             CIK_1
                 filing_year_1.txt
                 filing_year_2.txt
     and so on. 
     '''
     
-    if len(mentions) == 0:
+    if len(data) == 0:
         raise Exception("Nothing to write!")
                 
     # this is normally 10 digits. make it 10 for consistent directory grammar
     while len(CIK) < Constants.CIK_CODE_LENGTH: 
         CIK = '0' + CIK
     
-    path = os.path.join(Constants.PATH_TO_CORPUS, CIK)
+    path = os.path.join(Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS, CIK)
     
     if not os.path.exists(path):
         os.makedirs(path)
@@ -79,32 +85,5 @@ def write_to_corpus(mentions, CIK, filing_year,force_write=True):
     
     if os.path.exists(path_with_file) and force_write or not os.path.exists(path_with_file):
         with open(path_with_file, 'w') as f:
-            f.writelines(mentions)
+            f.writelines(data)
 
-def main():
-    
-    CIK = '0000216228'
-    
-    for i in xrange(2004, 2012 + 1):
-                
-        print "Begin:\tCIK:%s\t%s" % (CIK, i)
-        
-        try:
-            
-            l = Litigation10KParser(CIK, i)
-            l.parse()   
-            
-            #for mention in l.mentions: print mention            
-            write_processed_url_data_to_file(text=l.text, CIK=l.CIK, filing_year=l.filing_year)
-            
-            write_to_corpus(CIK=l.CIK, mentions=l.mentions, filing_year=l.filing_year)
-
-            
-        except Exception as exception:
-            print "Exception: ", exception
-    
-if __name__ == '__main__':
-    start = time()
-    main()
-    end = time()
-    print "Runtime:%r seconds" % (end - start)
