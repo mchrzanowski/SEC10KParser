@@ -22,7 +22,7 @@ def run():
     end = time.time()
     print "Regression Runtime:%r seconds." % (end - start) 
 
-def __unit_test(CIK, filing_year, corpus_file):
+def _unit_test(CIK, filing_year, corpus_file):
     
     with open(corpus_file, 'r') as f:
         
@@ -61,7 +61,7 @@ def run_test_suite():
             for filing_year_file in os.listdir(os.path.join(path, potential_cik)):
                 path_to_test = os.path.join(path, potential_cik, filing_year_file)
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
-                pool.apply_async(__unit_test, args=(potential_cik, filing_year, path_to_test))   
+                pool.apply_async(_unit_test, args=(potential_cik, filing_year, path_to_test))   
     
     pool.close()
     pool.join()

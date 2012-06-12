@@ -13,7 +13,6 @@ from urllib2 import urlopen
 import Constants
 import LegalProceedingParsing
 import lxml.html.clean
-import os.path
 import re
 
 
@@ -64,7 +63,7 @@ def convert_html_into_clean_text(data):
     
     return data
 
-def __get_litigaton_mentions(result):
+def _get_litigaton_mentions(result):
     
     # first, check for the LEGAL PROCEEDINGS section
     legal_proceeding_mention = LegalProceedingParsing.get_best_legal_proceeding_hit(result.processed_text)
@@ -91,7 +90,7 @@ def parse(CIK, filing_year, processed_website_data=None):
         else:
             raise Exception("Error: No URL to parse for data.")
     
-    __get_litigaton_mentions(results)
+    _get_litigaton_mentions(results)
     
     return results
 
@@ -99,13 +98,13 @@ class ParsingResults(object):
     
     def __init__(self, CIK, filing_year):
         self.CIK = CIK
-        self.filing_year = self.__sanitize_filing_year(filing_year)
+        self.filing_year = self._sanitize_filing_year(filing_year)
         self.legal_proceeding_mention = None
         self.legal_note_mention = None
         self.processed_text = None
     
     @staticmethod
-    def __sanitize_filing_year(year):
+    def _sanitize_filing_year(year):
         year = str(year)
         if len(year) == 2:
             if year < '50':
