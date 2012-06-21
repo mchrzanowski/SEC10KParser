@@ -4,11 +4,16 @@ Created on Jun 8, 2012
 @author: mchrzanowski
 '''
 
+import Constants
 import os.path
 import shutil
-import Constants
 
 def get_processed_website_data_from_corpus(CIK, filing_year):
+    
+    CIK = str(CIK)
+    
+    while len(CIK) < Constants.CIK_CODE_LENGTH:
+        CIK = '0' + CIK
        
     candidate_path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK, str(filing_year) + ".txt")
     

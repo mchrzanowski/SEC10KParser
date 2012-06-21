@@ -10,9 +10,9 @@ import time
 
 def main():
     
-    CIK = '0000045919'
+    CIK = '0001163165'
     
-    for i in xrange(2004, 2004 + 1):
+    for i in xrange(2010, 2010 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, i)
         
@@ -34,8 +34,7 @@ def main():
                 CorpusAccess.write_to_legal_proceeding_corpus(CIK=results.CIK, data=results.legal_proceeding_mention, filing_year=results.filing_year)
                 print "Wrote legal proceeding data to corpus."
             else:
-                print "NOTHING TO WRITE!"
-
+                print "No Legal Proceeding Section to Write!"
             
         except Exception as exception:
             print "Exception: ", exception

@@ -12,6 +12,7 @@ from urllib2 import urlopen
 
 import Constants
 import LegalProceedingParsing
+import LitigationFootnoteParsing
 import lxml.html.clean
 import re
 
@@ -70,6 +71,7 @@ def _get_litigaton_mentions(result):
     result.legal_proceeding_mention = legal_proceeding_mention
     
     # now, get the note sections dealing with legal contingencies
+    legal_oriented_note = LitigationFootnoteParsing.get_best_litigation_note_hits(result.processed_text, result.legal_proceeding_mention)
     
     
 
@@ -99,7 +101,7 @@ class ParsingResults(object):
         self.CIK = CIK
         self.filing_year = self._sanitize_filing_year(filing_year)
         self.legal_proceeding_mention = None
-        self.legal_note_mention = None
+        self.legal_note_mentions = []
         self.processed_text = None
     
     @staticmethod
