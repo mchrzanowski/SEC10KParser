@@ -22,7 +22,6 @@ def _check_if_relevant_section(location, hits):
     
     # does it contain verbs? detritus usually doesn't.
     contains_verbs = False
-    
     for word in nltk.word_tokenize(hits[location]):
         if re.match("(is|are|hav|has|became|becom|refer|regard|been)", word, re.I):
             contains_verbs = True
@@ -51,20 +50,20 @@ def _check_if_relevant_section(location, hits):
         
         # no. rewind until we find the last word ending in a punct mark.
         end_of_last_sentence_index = None
-        for i in xrange(len(punctuated_tokens) - 2, -1, -1):
+        for i in xrange(len(punctuated_tokens) - 1, -1, -1):
             
-            if re.match(".*[.?!]$", punctuated_tokens[i], re.I):
+            if re.match(".*[.?!]$", punctuated_tokens[i]):
                 end_of_last_sentence_index = i
                 break
         
         # no punct marks at all?! Raise an error; something is screwed up.
-        if end_of_last_sentence_index is None:
-            raise Exception("No punct marks found in:" + punctuated_tokens)
-                
-        for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # no. check the last sentence fragment. 
-            if re.match("(SEE|REFER)", word, re.I):                         # found special word. this is not a complete sentence.
-                inside_fragment = True
-                break
+        if end_of_last_sentence_index is not None:
+#            raise Exception("No punct marks found in:" + ''.join(blob + ' ' for blob in punctuated_tokens))
+            
+            for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # no. check the last sentence fragment. 
+                if re.search("(SEE|DISCUSS|REFER|\()", word, re.I):                      # found special word. this is not a complete sentence.
+                    inside_fragment = True
+                    break
     
     if inside_fragment:
         return False
@@ -102,6 +101,7 @@ def _check_if_valid_header(location, hits):
     
     if contains_keyword is False:
         return False
+    
     
     return True
 

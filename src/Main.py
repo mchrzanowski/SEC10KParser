@@ -8,10 +8,11 @@ import CIKFormatter
 import CorpusAccess
 import Litigation10KParsing
 import time
+import traceback
 
 def main():
     
-    CIK = CIKFormatter.format_CIK('104169')
+    CIK = CIKFormatter.format_CIK('0001163165')
     
     for i in xrange(2004, 2012 + 1):
                 
@@ -44,7 +45,8 @@ def main():
             
         except Exception as exception:
             print "Exception: ", exception
-    
+            traceback.print_exc()
+
 if __name__ == '__main__':
     start = time.time()
     main()

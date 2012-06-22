@@ -7,8 +7,6 @@ Created on Jun 3, 2012
 from __future__ import division
 from bs4 import BeautifulSoup
 from HTMLTagStripper import HTMLTagStripper
-from TextSanitizer import TextSanitizer
-from urllib2 import urlopen
 
 import CIKFormatter
 import Constants
@@ -16,7 +14,8 @@ import LegalProceedingParsing
 import LitigationFootnoteParsing
 import lxml.html.clean
 import re
-
+import TextSanitizer
+import urllib2
 
 def get_10k_url(filing_year, CIK):
     ''' 
@@ -29,7 +28,7 @@ def get_10k_url(filing_year, CIK):
     
     filing_year = filing_year[2:4]   # always 4 digits long.
     
-    source = urlopen(Constants.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + CIK + "&type=10-K").read()
+    source = urllib2.urlopen(Constants.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + CIK + "&type=10-K").read()
     
     # remove 10-K/A URLs
     source = re.sub("10-K\/A.*?</a>", " ", source, count=0, flags=re.M | re.I | re.S)
@@ -87,7 +86,7 @@ def parse(CIK, filing_year, processed_website_data=None):
         url = get_10k_url(CIK=results.CIK, filing_year=results.filing_year)
         
         if url is not None:
-            response = urlopen(url).read()
+            response = urllib2.urlopen(url).read()
             results.processed_text = convert_html_into_clean_text(response)                    
         else:
             raise Exception("Error: No URL to parse for data.")

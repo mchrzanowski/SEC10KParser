@@ -6,17 +6,16 @@ Created on Jun 7, 2012
 
 import re
 
+def sanitize(text):
+    ts = TextSanitizer(text)
+    ts.clean_text()
+    return ts.text
+
 class TextSanitizer(object):
     
     def __init__(self, text):
         self.text = text
-    
-    @staticmethod
-    def sanitize(text):
-        ts = TextSanitizer(text)
-        ts.clean_text()
-        return ts.text
-    
+        
     def remove_monetary_figures(self, text):
         return re.sub("\$[^\s]+", "dollar", text)
     
