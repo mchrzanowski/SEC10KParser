@@ -71,8 +71,8 @@ def _get_litigaton_mentions(result):
     result.legal_proceeding_mention = legal_proceeding_mention
     
     # now, get the note sections dealing with legal contingencies
-    legal_oriented_note = LitigationFootnoteParsing.get_best_litigation_note_hits(result.processed_text, result.legal_proceeding_mention)
-    
+    legal_oriented_notes = LitigationFootnoteParsing.get_best_litigation_note_hits(result.processed_text)
+    result.legal_note_mentions.extend(legal_oriented_notes)
     
 
 def parse(CIK, filing_year, processed_website_data=None):

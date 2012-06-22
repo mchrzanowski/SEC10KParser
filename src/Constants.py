@@ -10,6 +10,8 @@ CIK_CODE_LENGTH = 10
 
 PATH_TO_CORPUS = './corpus/'
 
+PATH_TO_LEGAL_FOOTNOTE_CORPUS = os.path.join(PATH_TO_CORPUS, 'legal_footnotes')
+
 PATH_TO_LEGAL_PROCEEDING_CORPUS = os.path.join(PATH_TO_CORPUS, 'legal_proceedings')
 
 PATH_TO_FAILED_UNIT_TESTS = './failed_tests/'

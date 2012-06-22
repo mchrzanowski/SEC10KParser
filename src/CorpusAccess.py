@@ -62,8 +62,27 @@ def write_processed_url_data_to_file(data, CIK, filing_year):
     if not os.path.exists(path_with_file):
         with open(path_with_file, 'w') as f:
             f.writelines(data)
-
-def write_to_legal_proceeding_corpus(data, CIK, filing_year, force_write=True):
+            
+            
+def write_data_to_corpus(data, CIK, filing_year, path):
+    
+    if data is None or len(data) == 0:
+        raise Exception("Nothing to write!")
+                
+    # this is normally 10 digits. make it 10 for consistent directory grammar
+    while len(CIK) < Constants.CIK_CODE_LENGTH: 
+        CIK = '0' + CIK
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+        
+    path_with_file = os.path.join(path, filing_year + ".txt")
+    
+    if os.path.exists(path_with_file) or not os.path.exists(path_with_file):
+        with open(path_with_file, 'w') as f:
+            f.writelines(data)     
+    
+def write_to_litigation_footnote_corpus(data, CIK, filing_year):
     ''' 
     we'll dump our resulting data to a text file.
     it will be structured thusly:
@@ -73,22 +92,20 @@ def write_to_legal_proceeding_corpus(data, CIK, filing_year, force_write=True):
                 filing_year_2.txt
     and so on. 
     '''
-    
-    if data is None or len(data) == 0:
-        raise Exception("Nothing to write!")
-                
-    # this is normally 10 digits. make it 10 for consistent directory grammar
-    while len(CIK) < Constants.CIK_CODE_LENGTH: 
-        CIK = '0' + CIK
-    
+    path = os.path.join(Constants.PATH_TO_LEGAL_FOOTNOTE_CORPUS, CIK)
+    write_data_to_corpus(data, CIK, filing_year, path)
+
+def write_to_legal_proceeding_corpus(data, CIK, filing_year):
+    ''' 
+    we'll dump our resulting data to a text file.
+    it will be structured thusly:
+       legal_foonotes
+            CIK_1
+                filing_year_1.txt
+                filing_year_2.txt
+    and so on. 
+    '''
     path = os.path.join(Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS, CIK)
+    write_data_to_corpus(data, CIK, filing_year, path)
     
-    if not os.path.exists(path):
-        os.makedirs(path)
-        
-    path_with_file = os.path.join(path, filing_year + ".txt")
-    
-    if os.path.exists(path_with_file) and force_write or not os.path.exists(path_with_file):
-        with open(path_with_file, 'w') as f:
-            f.writelines(data)
 

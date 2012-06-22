@@ -12,15 +12,14 @@ def main():
     
     CIK = '0001163165'
     
-    for i in xrange(2010, 2010 + 1):
+    for i in xrange(2004, 2012 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, i)
         
         try:
             
-#            processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, i)
-            
-            processed_data = None                   
+            processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, i)
+
             results = Litigation10KParsing.parse(CIK, i, processed_website_data=processed_data)   
                         
             #for mention in l.mentions: print mention    
@@ -35,6 +34,12 @@ def main():
                 print "Wrote legal proceeding data to corpus."
             else:
                 print "No Legal Proceeding Section to Write!"
+                
+            if len(results.legal_note_mentions) > 0:
+                CorpusAccess.write_to_litigation_footnote_corpus(results.legal_note_mentions, results.CIK, results.filing_year)
+                print "Wrote legal footnotes to corpus."
+            else:
+                print "No legal footnotes to write!"
             
         except Exception as exception:
             print "Exception: ", exception
