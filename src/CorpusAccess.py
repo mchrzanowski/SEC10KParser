@@ -4,16 +4,22 @@ Created on Jun 8, 2012
 @author: mchrzanowski
 '''
 
+import CIKFormatter
 import Constants
 import os.path
 import shutil
 
+def _separate_items_with_delimiters(data):
+    formatted_data = list()
+    for datum in data:
+        formatted_data.append(datum)
+        formatted_data.append('\n======================================\n')
+    
+    return formatted_data
+
 def get_processed_website_data_from_corpus(CIK, filing_year):
     
-    CIK = str(CIK)
-    
-    while len(CIK) < Constants.CIK_CODE_LENGTH:
-        CIK = '0' + CIK
+    CIK = CIKFormatter.format_CIK(CIK)
        
     candidate_path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK, str(filing_year) + ".txt")
     
@@ -30,6 +36,8 @@ def wipe_existing_failed_unit_tests():
         print "Previous failed unit tests deleted."
 
 def write_comparison_to_file(new_output, old_output, CIK, filing_year):
+    
+    CIK = CIKFormatter.format_CIK(CIK)
     
     path = os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, CIK)
     
@@ -52,6 +60,8 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
 
 def write_processed_url_data_to_file(data, CIK, filing_year):
     
+    CIK = CIKFormatter.format_CIK(CIK)
+    
     path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK) 
     
     if not os.path.exists(path): 
@@ -69,10 +79,8 @@ def write_data_to_corpus(data, CIK, filing_year, path):
     if data is None or len(data) == 0:
         raise Exception("Nothing to write!")
                 
-    # this is normally 10 digits. make it 10 for consistent directory grammar
-    while len(CIK) < Constants.CIK_CODE_LENGTH: 
-        CIK = '0' + CIK
-    
+    CIK = CIKFormatter.format_CIK(CIK)
+
     if not os.path.exists(path):
         os.makedirs(path)
         
@@ -92,8 +100,10 @@ def write_to_litigation_footnote_corpus(data, CIK, filing_year):
                 filing_year_2.txt
     and so on. 
     '''
+    CIK = CIKFormatter.format_CIK(CIK)
+    
     path = os.path.join(Constants.PATH_TO_LEGAL_FOOTNOTE_CORPUS, CIK)
-    write_data_to_corpus(data, CIK, filing_year, path)
+    write_data_to_corpus(_separate_items_with_delimiters(data), CIK, filing_year, path)
 
 def write_to_legal_proceeding_corpus(data, CIK, filing_year):
     ''' 
@@ -105,7 +115,9 @@ def write_to_legal_proceeding_corpus(data, CIK, filing_year):
                 filing_year_2.txt
     and so on. 
     '''
+    CIK = CIKFormatter.format_CIK(CIK)
+    
     path = os.path.join(Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS, CIK)
-    write_data_to_corpus(data, CIK, filing_year, path)
+    write_data_to_corpus(_separate_items_with_delimiters(data), CIK, filing_year, path)
     
 

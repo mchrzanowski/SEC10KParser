@@ -10,6 +10,7 @@ from HTMLTagStripper import HTMLTagStripper
 from TextSanitizer import TextSanitizer
 from urllib2 import urlopen
 
+import CIKFormatter
 import Constants
 import LegalProceedingParsing
 import LitigationFootnoteParsing
@@ -98,7 +99,7 @@ def parse(CIK, filing_year, processed_website_data=None):
 class ParsingResults(object):
     
     def __init__(self, CIK, filing_year):
-        self.CIK = CIK
+        self.CIK = CIKFormatter.format_CIK(CIK)
         self.filing_year = self._sanitize_filing_year(filing_year)
         self.legal_proceeding_mention = None
         self.legal_note_mentions = []

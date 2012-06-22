@@ -4,13 +4,14 @@ Created on Jun 11, 2012
 @author: mchrzanowski
 '''
 
+import CIKFormatter
 import CorpusAccess
 import Litigation10KParsing
 import time
 
 def main():
     
-    CIK = '0001163165'
+    CIK = CIKFormatter.format_CIK('104169')
     
     for i in xrange(2004, 2012 + 1):
                 
