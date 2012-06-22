@@ -4,15 +4,15 @@ Created on Jun 11, 2012
 @author: mchrzanowski
 '''
 
-import CIKFormatter
 import CorpusAccess
 import Litigation10KParsing
 import time
 import traceback
+import Utilities
 
 def main():
     
-    CIK = CIKFormatter.format_CIK('0001163165')
+    CIK = Utilities.format_CIK('0000896878')
     
     for i in xrange(2004, 2012 + 1):
                 
@@ -29,7 +29,7 @@ def main():
                 CorpusAccess.write_processed_url_data_to_file(data=results.processed_text, CIK=results.CIK, filing_year=results.filing_year)
                 print "Wrote processed url data"
             else:
-                print "skipping writing processed url data."
+                print "Skipped writing processed url data."
             
             if results.legal_proceeding_mention is not None:
                 CorpusAccess.write_to_legal_proceeding_corpus(CIK=results.CIK, data=results.legal_proceeding_mention, filing_year=results.filing_year)

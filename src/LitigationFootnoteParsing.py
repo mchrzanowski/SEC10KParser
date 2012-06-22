@@ -9,28 +9,16 @@ import nltk
 import re
 import Utilities
 
+import time
+
 
 def _check_if_valid_ending(location, hits):
-    if _check_if_relevant_section(location, hits):
+    if _validate_section(location, hits) and not _check_if_valid_header(location, hits):
         return True
     else:
         return False
-
-def _check_if_relevant_section(location, hits):
     
-#    print "CHECKING:", hits[location]
-    
-    # does it contain verbs? detritus usually doesn't.
-    contains_verbs = False
-    for word in nltk.word_tokenize(hits[location]):
-        if re.match("(is|are|hav|has|became|becom|refer|regard|been)", word, re.I):
-            contains_verbs = True
-            break
-    
-    if not contains_verbs:
-        return False
-    
-#    print "VERB CHECK PASS"
+def _check_whether_section_is_part_of_another_section(location, hits):
     
     # now check as to whether we're still in a sentence. 
     # 1). cut everything beforehand into sentences.
@@ -39,8 +27,7 @@ def _check_if_relevant_section(location, hits):
     #        past the last real sentence to see whether the words 'see' or 'refer' are there.
     #        These are special words usually indicating that we're still in a given section
     #        but that we're referring to another footnote of the 10-K.
-    inside_fragment = False
-    
+        
     text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and num > location - 12)  # assume the token is hits[location - 1]
     
     # strip everything except those words after the last punctuation mark.
@@ -59,30 +46,59 @@ def _check_if_relevant_section(location, hits):
         # no punct marks at all?! Raise an error; something is screwed up.
         if end_of_last_sentence_index is not None:
 #            raise Exception("No punct marks found in:" + ''.join(blob + ' ' for blob in punctuated_tokens))
-            
-            for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # no. check the last sentence fragment. 
-                if re.search("(SEE|DISCUSS|REFER|\()", word, re.I):                      # found special word. this is not a complete sentence.
-                    inside_fragment = True
-                    break
+            #if _does_section_contain_verbs(punctuated_tokens[end_of_last_sentence_index + 1:]):
+                for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # no. check the last sentence fragment. 
+                    
+                    # found special word. this is not a complete sentence.
+                    # these special words are here because there are all sorts of garbage sections
+                    # that have verbs but are actually the text from graphs and charts.
+                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|include|disclose)", word, re.I):       
+                        return True
     
-    if inside_fragment:
+    return False
+
+def _does_section_contain_verbs(words):
+    
+    #print "WORDS:", words
+    contains_verbs = False
+    for _, pos in nltk.pos_tag(words):  # classify words into parts of speech.
+        if re.match("VB[^G]", pos):
+            contains_verbs = True
+            break
+    
+    return contains_verbs
+    
+    
+def _validate_section(location, hits):
+    
+    #print "CHECKING:", hits[location]
+
+    words_in_hit = nltk.word_tokenize(hits[location])
+    
+    # does it contain verbs? detritus usually doesn't.    
+    if not _does_section_contain_verbs(words_in_hit):
         return False
     
-#    print "FRAGMENT CHECK PASS"
+    #print "VERB CHECK PASS"
+    
+    if _check_whether_section_is_part_of_another_section(location, hits):
+        return False
+    
+    #print "FRAGMENT CHECK PASS"
     
     # does it contain weird XML/HTML elements? probably not what we want.
     contains_tagging_detritus = False
-    for word in nltk.word_tokenize(hits[location]):
-        if re.search("(XML$|td$|div$|valign$|falsefalse|[0-9]+px|\/b\/|font-family)", word, re.I):
+    for word in words_in_hit:
+        if re.search("(XML$|^td$|^div$|^valign$|falsefalse|[0-9]+px|\/b\/|font-family|xml)", word):
+            #print "MATCH:", word
             contains_tagging_detritus = True
             break
     
     if contains_tagging_detritus:
         return False
     
-#    print "JUNK TAG CHECK PASS"
+    #print "JUNK TAG CHECK PASS"
     
-    # PASS.
     return True
     
         
@@ -92,18 +108,24 @@ def _get_header_of_chunk(location, hits):
 
 def _check_if_valid_header(location, hits):
     
+    header = _get_header_of_chunk(location, hits)
+    
     # header *has* to contain some special keywords.
     contains_keyword = False    
-    for word in _get_header_of_chunk(location, hits):
-        if re.match("(LITIGATION|CONTINGENC|COMMITMENT|PROCEEDING|LEGAL)", word, re.I):
+    for word in header:
+        if re.match("(L[iI][tT][iI][gG][aA][tT][iI][oO][nN]|" + \
+            "C[oO][nN][tT][iI][nN][gG][eE][nN][cC]|" + \
+            "C[oO][mM][mM][iI][tT][mM][eE][nN][tT]|" + \
+            "P[rR][oO][cC][eE][eE][dD][iI][nN][gG]|" + \
+            "L[eE][gG][aA][lL])", word):
             contains_keyword = True
             break
     
     if contains_keyword is False:
         return False
     
-    
     return True
+
 
 def _choose_best_hit_for_given_header(current, new):
     
@@ -114,6 +136,14 @@ def _choose_best_hit_for_given_header(current, new):
 
 def _get_all_viable_hits(text):
     
+    def _set_up_recorder(location, hits):
+        recorder = list()
+        record_header = ''.join(blob for blob in _get_header_of_chunk(i, hits))
+        #print "CREATED:", record_header
+        recorder.append(hits[i - 1])   # assuming this is the token.
+        recorder.append(hits[i])
+        return record_header, recorder
+        
     results = dict()
     
     for regex in LFRC.get_document_parsing_regexes():
@@ -121,18 +151,15 @@ def _get_all_viable_hits(text):
         hits = re.split(regex, text)
         
         record_text = False
-        recorder = []
+        recorder = list()
         
         for i in xrange(len(hits)):
             
             if record_text is False:
-                if _check_if_valid_header(i, hits) and _check_if_relevant_section(i, hits):
-                    # suck up everything until this section is finished.
+                if _check_if_valid_header(i, hits) and _validate_section(i, hits):
                     record_text = True
-                    record_header = ''.join(blob for blob in _get_header_of_chunk(i, hits))
-                    recorder.append(hits[i - 1])   # assuming this is the token.
-                    recorder.append(hits[i])
-            
+                    record_header, recorder = _set_up_recorder(i, hits)
+
             else:
                 if not re.match(regex, hits[i]) and _check_if_valid_ending(i, hits):
                     record_text = False
@@ -144,18 +171,16 @@ def _get_all_viable_hits(text):
                         results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)
                     
                     recorder = []
+                    record_header = None
                     
-                    if _check_if_valid_header(i, hits) and _check_if_relevant_section(i, hits):
-                        # suck up everything until this section is finished.
+                    if _check_if_valid_header(i, hits) and _validate_section(i, hits):
                         record_text = True
-                        record_header = ''.join(blob for blob in _get_header_of_chunk(i, hits))
-                        recorder.append(hits[i - 1])   # assuming this is the token.
-                        recorder.append(hits[i])
+                        record_header, recorder = _set_up_recorder(i, hits)
                     
                 else:
                     recorder.append(hits[i])
         
-        if len(recorder) > 0:
+        if len(recorder) > 0 and record_header is not None:
             record = ''.join(blob for blob in recorder)
             if record_header not in results:
                 results[record_header] = record
@@ -168,7 +193,7 @@ def _get_all_viable_hits(text):
         
 #    exit(0)
 
-    return [results[key] for key in results]
+    return (results[key] for key in results)
 
 def get_best_litigation_note_hits(text, cutoff=None):
     if cutoff is not None:
