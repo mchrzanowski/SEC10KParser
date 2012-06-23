@@ -10,7 +10,7 @@ import re
 import Utilities
 
 
-def _validate_section(hit):
+def _check_whether_chunk_is_new_section(hit):
     ''' 
         a checker to validate whether a given piece of context could
         conceivably be a real litigation mention and not just some detritus 
@@ -44,7 +44,7 @@ def _get_all_possible_hits(text):
             if anti_regex is not None and re.search(anti_regex, candidate):
                 continue
                                                                                                                                             
-            if not _validate_section(candidate):
+            if not _check_whether_chunk_is_new_section(candidate):
                 continue
                                         
             # legal proceeding is always mentioned very, very close to the start of the real section

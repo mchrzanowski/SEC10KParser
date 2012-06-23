@@ -6,17 +6,32 @@ Created on Jun 8, 2012
 
 import Constants
 import os.path
+import re
 import shutil
 import Utilities
 
 
-def _separate_items_with_delimiters(data):
-    formatted_data = list()
-    for datum in data:
-        formatted_data.append(datum)
-        formatted_data.append('\n======================================\n')
+def _walk_directory(corpus_root):
+    get_filing_year_from_corpus_file = re.compile("\.txt", re.I)
     
-    return formatted_data
+    for potential_cik in os.listdir(corpus_root):
+        if os.path.isdir(os.path.join(corpus_root, potential_cik)):
+            for filing_year_file in os.listdir(os.path.join(corpus_root, potential_cik)):
+                path_to_file = os.path.join(corpus_root, potential_cik, filing_year_file)
+                filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
+                yield potential_cik, filing_year, path_to_file
+
+def access_every_file_in_legal_footnotes_corpus():
+    corpus_root = Constants.PATH_TO_LEGAL_FOOTNOTE_CORPUS
+    for CIK, filing_year, filepath in _walk_directory(corpus_root):
+        yield CIK, filing_year, filepath 
+
+def access_every_file_in_legal_proceeding_corpus():
+    
+    corpus_root = Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS
+    for CIK, filing_year, filepath in _walk_directory(corpus_root):
+        yield CIK, filing_year, filepath 
+                
 
 def get_processed_website_data_from_corpus(CIK, filing_year):
     
@@ -104,7 +119,7 @@ def write_to_litigation_footnote_corpus(data, CIK, filing_year):
     CIK = Utilities.format_CIK(CIK)
     
     path = os.path.join(Constants.PATH_TO_LEGAL_FOOTNOTE_CORPUS, CIK)
-    write_data_to_corpus(_separate_items_with_delimiters(data), CIK, filing_year, path)
+    write_data_to_corpus(data, CIK, filing_year, path)
 
 def write_to_legal_proceeding_corpus(data, CIK, filing_year):
     ''' 
@@ -119,6 +134,6 @@ def write_to_legal_proceeding_corpus(data, CIK, filing_year):
     CIK = Utilities.format_CIK(CIK)
     
     path = os.path.join(Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS, CIK)
-    write_data_to_corpus(_separate_items_with_delimiters(data), CIK, filing_year, path)
+    write_data_to_corpus(data, CIK, filing_year, path)
     
 

@@ -8,7 +8,6 @@ from __future__ import division
 from bs4 import BeautifulSoup
 from HTMLTagStripper import HTMLTagStripper
 
-import CIKFormatter
 import Constants
 import LegalProceedingParsing
 import LitigationFootnoteParsing
@@ -16,6 +15,7 @@ import lxml.html.clean
 import re
 import TextSanitizer
 import urllib2
+import Utilities
 
 def get_10k_url(filing_year, CIK):
     ''' 
@@ -64,18 +64,20 @@ def convert_html_into_clean_text(data):
     
     return data
 
-def _get_litigaton_mentions(result):
+def _get_litigaton_mentions(result, get_legal_proceeding_only, get_litigation_footnotes_only):
     
     # first, check for the LEGAL PROCEEDINGS section
-    legal_proceeding_mention = LegalProceedingParsing.get_best_legal_proceeding_hit(result.processed_text)
-    result.legal_proceeding_mention = legal_proceeding_mention
+    if not get_litigation_footnotes_only:
+        legal_proceeding_mention = LegalProceedingParsing.get_best_legal_proceeding_hit(result.processed_text)
+        result.legal_proceeding_mention = legal_proceeding_mention
     
     # now, get the note sections dealing with legal contingencies
-    legal_oriented_notes = LitigationFootnoteParsing.get_best_litigation_note_hits(result.processed_text)
-    result.legal_note_mentions.extend(legal_oriented_notes)
+    if not get_legal_proceeding_only:
+        legal_oriented_notes = LitigationFootnoteParsing.get_best_litigation_note_hits(result.processed_text)
+        result.legal_note_mentions = legal_oriented_notes
     
 
-def parse(CIK, filing_year, processed_website_data=None):
+def parse(CIK, filing_year, processed_website_data=None,get_legal_proceeding_only=False, get_litigation_footnotes_only=False):
     
     results = ParsingResults(CIK, filing_year)
     
@@ -91,17 +93,17 @@ def parse(CIK, filing_year, processed_website_data=None):
         else:
             raise Exception("Error: No URL to parse for data.")
     
-    _get_litigaton_mentions(results)
+    _get_litigaton_mentions(results, get_legal_proceeding_only, get_litigation_footnotes_only)
     
     return results
 
 class ParsingResults(object):
     
     def __init__(self, CIK, filing_year):
-        self.CIK = CIKFormatter.format_CIK(CIK)
+        self.CIK = Utilities.format_CIK(CIK)
         self.filing_year = self._sanitize_filing_year(filing_year)
         self.legal_proceeding_mention = None
-        self.legal_note_mentions = []
+        self.legal_note_mentions = None
         self.processed_text = None
     
     @staticmethod

@@ -10,29 +10,24 @@ import Constants
 import CorpusAccess
 import Litigation10KParsing
 import multiprocessing
-import os
-import re
 import time
 import Utilities
 
 def run():
     start = time.time()
-    CorpusAccess.wipe_existing_failed_unit_tests()
-    run_test_suite()
+    run_regression_test_suite()
     end = time.time()
     print "Regression Runtime:%r seconds." % (end - start) 
 
-def _unit_test(CIK, filing_year, corpus_file):
-    
+def _character_count_test(CIK, filing_year, new_data, corpus_file):
+
+    parser_alpha_numeric_count =  Utilities.get_alpha_numeric_count(''.join(blob for blob in new_data))
+
     with open(corpus_file, 'r') as f:
         
         text_from_file = f.read()
         file_alpha_numeric_count = Utilities.get_alpha_numeric_count(text_from_file)
-        
-    processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
-    result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data)
-    parser_alpha_numeric_count =  Utilities.get_alpha_numeric_count(result.legal_proceeding_mention)
-        
+    
     change = (parser_alpha_numeric_count - file_alpha_numeric_count) / file_alpha_numeric_count
     result = abs(change) < Constants.REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD
     
@@ -40,9 +35,21 @@ def _unit_test(CIK, filing_year, corpus_file):
     print "Corpus Count:%r, Passed:%r" % (file_alpha_numeric_count, result)
     
     if result is False:
-        CorpusAccess.write_comparison_to_file(result.legal_proceeding_mention, text_from_file, CIK, filing_year)
-    
-def run_test_suite():
+        CorpusAccess.write_comparison_to_file(new_data, text_from_file, CIK, filing_year)
+
+
+def _litigation_footnote_unit_test(CIK, filing_year, corpus_file):
+    processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
+    result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data, get_litigation_footnotes_only=True)
+    _character_count_test(CIK, filing_year, result.legal_note_mentions, corpus_file)
+
+def _legal_proceeding_unit_test(CIK, filing_year, corpus_file):
+                
+    processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
+    result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data, get_legal_proceeding_only=True)
+    _character_count_test(CIK, filing_year, result.legal_proceeding_mention, corpus_file)
+
+def _walk_corpus_file_directory_and_call_unit_test(unit_test, corpus_walker):    
     ''' 
         go through every single CIK,Year pair and instantiate new 10KParser classes
         for all of them. check their results against what is in the corpus. the new blob
@@ -50,21 +57,25 @@ def run_test_suite():
         different than what is in the corpus. 
     '''
     
-    path = Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS
-    
     pool = multiprocessing.Pool()
-    
-    get_filing_year_from_corpus_file = re.compile("\.txt", re.I)
-    
-    for potential_cik in os.listdir(path):
-        if os.path.isdir(os.path.join(path, potential_cik)):
-            for filing_year_file in os.listdir(os.path.join(path, potential_cik)):
-                path_to_test = os.path.join(path, potential_cik, filing_year_file)
-                filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
-                pool.apply_async(_unit_test, args=(potential_cik, filing_year, path_to_test))   
+        
+    for CIK, filing_year, file_path in corpus_walker():
+        pool.apply_async(unit_test, args=(CIK, filing_year, file_path))   
     
     pool.close()
     pool.join()
+
+def run_regression_test_suite():
+    CorpusAccess.wipe_existing_failed_unit_tests()
+    _run_legal_proceeding_test_suite()
+    _run_legal_footnotes_test_suite()
+    
+def _run_legal_footnotes_test_suite():
+    _walk_corpus_file_directory_and_call_unit_test(_litigation_footnote_unit_test, CorpusAccess.access_every_file_in_legal_footnotes_corpus)
+
+def _run_legal_proceeding_test_suite():
+    _walk_corpus_file_directory_and_call_unit_test(_legal_proceeding_unit_test, CorpusAccess.access_every_file_in_legal_proceeding_corpus)
+    
                     
 if __name__ == '__main__':
     run()

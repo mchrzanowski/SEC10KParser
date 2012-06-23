@@ -9,14 +9,11 @@ import nltk
 import re
 import Utilities
 
-import time
-
-
 def _check_if_valid_ending(location, hits):
-    if _validate_section(location, hits) and not _check_if_valid_header(location, hits):
-        return True
-    else:
+    if _check_whether_section_is_part_of_another_section(location, hits) or _check_whether_header_is_valuable(location, hits):
         return False
+    else:
+        return True
     
 def _check_whether_section_is_part_of_another_section(location, hits):
     
@@ -69,7 +66,7 @@ def _does_section_contain_verbs(words):
     return contains_verbs
     
     
-def _validate_section(location, hits):
+def _check_whether_chunk_is_new_section(location, hits):
     
     #print "CHECKING:", hits[location]
 
@@ -87,26 +84,21 @@ def _validate_section(location, hits):
     #print "FRAGMENT CHECK PASS"
     
     # does it contain weird XML/HTML elements? probably not what we want.
-    contains_tagging_detritus = False
     for word in words_in_hit:
-        if re.search("(XML$|^td$|^div$|^valign$|falsefalse|[0-9]+px|\/b\/|font-family|xml)", word):
+        if re.search("(XML$|^td$|^div$|^valign$|falsefalse|truefalse|falsetrue|link:[0-9]+px|\/b\/|font-family|xml)", word):
             #print "MATCH:", word
-            contains_tagging_detritus = True
-            break
-    
-    if contains_tagging_detritus:
-        return False
+            return False
     
     #print "JUNK TAG CHECK PASS"
     
     return True
-    
+
         
 def _get_header_of_chunk(location, hits):
     ''' return the header '''
     return nltk.word_tokenize(hits[location])[:5]
 
-def _check_if_valid_header(location, hits):
+def _check_whether_header_is_valuable(location, hits):
     
     header = _get_header_of_chunk(location, hits)
     
@@ -114,18 +106,17 @@ def _check_if_valid_header(location, hits):
     contains_keyword = False    
     for word in header:
         if re.match("(L[iI][tT][iI][gG][aA][tT][iI][oO][nN]|" + \
-            "C[oO][nN][tT][iI][nN][gG][eE][nN][cC]|" + \
-            "C[oO][mM][mM][iI][tT][mM][eE][nN][tT]|" + \
-            "P[rR][oO][cC][eE][eE][dD][iI][nN][gG]|" + \
-            "L[eE][gG][aA][lL])", word):
+        "C[oO][nN][tT][iI][nN][gG][eE][nN][cC]|" + \
+        "C[oO][mM][mM][iI][tT][mM][eE][nN][tT]|" + \
+        "P[rR][oO][cC][eE][eE][dD][iI][nN][gG])", word):
             contains_keyword = True
+            #print word, header
             break
     
     if contains_keyword is False:
         return False
     
     return True
-
 
 def _choose_best_hit_for_given_header(current, new):
     
@@ -156,7 +147,7 @@ def _get_all_viable_hits(text):
         for i in xrange(len(hits)):
             
             if record_text is False:
-                if _check_if_valid_header(i, hits) and _validate_section(i, hits):
+                if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                     record_text = True
                     record_header, recorder = _set_up_recorder(i, hits)
 
@@ -173,7 +164,7 @@ def _get_all_viable_hits(text):
                     recorder = []
                     record_header = None
                     
-                    if _check_if_valid_header(i, hits) and _validate_section(i, hits):
+                    if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
                         record_header, recorder = _set_up_recorder(i, hits)
                     
@@ -185,15 +176,18 @@ def _get_all_viable_hits(text):
             if record_header not in results:
                 results[record_header] = record
             else:
-                results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)    
-    
+                results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)  
+                
+        if len(results) > 0:
+            break           # one type of regex is used. only one. notes don't take on different formats within the 10-K.
+        
 #    for result in results:
 #        print "NEW:"
 #        print results[result]   
         
 #    exit(0)
-
-    return (results[key] for key in results)
+    return ''.join(results[key] for key in results)
+    
 
 def get_best_litigation_note_hits(text, cutoff=None):
     if cutoff is not None:
