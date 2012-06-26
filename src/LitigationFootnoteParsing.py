@@ -34,10 +34,8 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2)  # assume the token is hits[location - 1]
     
     
-    #print "Old:", text_before_slice
-    # transform Note\s[0-9]+\. into Note\s[0-9]+,. this is a really common way of indicating sections. we dont want to trip up on the periods.
-    text_before_slice = re.sub("(?P<lol>Note\s*[0-9]+)\s*\.", "\g<lol>", text_before_slice)
-    #print "New:", text_before_slice
+    # rip out common places for periods.
+    text_before_slice = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text_before_slice, flags = re.I | re.M | re.S)
     
     # strip everything except those words after the last punctuation mark.
     punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
@@ -98,8 +96,8 @@ def _check_whether_chunk_is_new_section(location, hits):
     
     # does it contain weird XML/HTML elements? probably not what we want.
     for word in words_in_hit:
-        if re.search("(XML$|^td$|^div$|^valign$|falsefalse|truefalse|falsetrue|link:[0-9]+px|\/b\/|font-family|xml)", word):
-            #print "MATCH:", word
+        if re.search("(XML$|^td$|^div$|^valign$|falsefalse|truefalse|falsetrue|link:[0-9]+px|font-family|xml)", word):
+           #print "MATCH:", word
             return False
     
    #print "JUNK TAG CHECK PASS"
@@ -150,7 +148,7 @@ def _get_all_viable_hits(text):
     def _set_up_recorder(location, hits):
         recorder = list()
         record_header = ''.join(blob for blob in _get_header_of_chunk(i, hits))
-        #print "CREATED:", record_header
+       #print "CREATED:", record_header
         recorder.append(hits[i - 1])   # assuming this is the token.
         recorder.append(hits[i])
         return record_header, recorder
@@ -202,11 +200,11 @@ def _get_all_viable_hits(text):
         if len(results) > 0:
             break           # one type of regex is used. only one. notes don't take on different formats within the 10-K.
         
-#    for result in results:
-#        print "NEW:"
-#        print results[result]   
+    #for result in results:
+        #print "NEW:"
+        #print results[result]   
         
-#    exit(0)
+    #exit(0)
     return ''.join(results[key] + '\n\n' for key in results)
 
 def get_best_litigation_note_hits(text, cutoff=None):

@@ -6,6 +6,7 @@ Created on Jun 25, 2012
 
 import os.path
 import re
+import nltk.stem.porter
 
 class VerbClassifier(object):
     
@@ -16,19 +17,15 @@ class VerbClassifier(object):
         
     def is_word_a_common_verb(self, word):
         word = word.strip()
+        word = word.lower()
         
         if word in self.verbs:
             return True
         
-        for verb in self.verbs:
-            
-            # match assuming there's a suffix
-            if re.search(verb + "ed$", word, re.I) or   \
-            re.search(verb + "d$", word, re.I) or       \
-            re.search(verb + "ing$", word, re.I) or     \
-            re.search(verb + "s$", word, re.I):
-                print verb, word
-                return True
+        word = nltk.stem.porter.PorterStemmer().stem_word(word)
+        
+        if word in self.verbs:
+            return True
         
         return False
     
