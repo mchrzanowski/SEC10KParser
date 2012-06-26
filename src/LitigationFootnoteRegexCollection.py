@@ -14,4 +14,4 @@ def numbered_and_classified_footnotes():
     return re.compile("(Note\s*[0-9]+)", re.I | re.M | re.S)
 
 def well_formatted_numbered_footnotes_excluding_years():
-    return re.compile("(^\s+[0-9]{1,2}\.\s*)", re.I | re.M | re.S)
+    return re.compile("((?<!ITEM)\s+[0-9]{1,2}\.\s*)", re.I | re.M | re.S)

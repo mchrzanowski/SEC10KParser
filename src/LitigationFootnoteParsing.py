@@ -4,18 +4,24 @@ Created on Jun 13, 2012
 @author: mchrzanowski
 '''
 
+from VerbClassifier import VerbClassifier
+
 import LitigationFootnoteRegexCollection as LFRC
 import nltk
 import re
 import Utilities
 
+
 def _check_if_valid_ending(location, hits):
+   #print "CHECKING FOR ENDING:", hits[location]
     if _check_whether_section_is_part_of_another_section(location, hits) or _check_whether_header_is_valuable(location, hits):
         return False
     else:
         return True
     
 def _check_whether_section_is_part_of_another_section(location, hits):
+    
+   #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
     
     # now check as to whether we're still in a sentence. 
     # 1). cut everything beforehand into sentences.
@@ -25,7 +31,13 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     #        These are special words usually indicating that we're still in a given section
     #        but that we're referring to another footnote of the 10-K.
         
-    text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and num > location - 12)  # assume the token is hits[location - 1]
+    text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2)  # assume the token is hits[location - 1]
+    
+    
+    #print "Old:", text_before_slice
+    # transform Note\s[0-9]+\. into Note\s[0-9]+,. this is a really common way of indicating sections. we dont want to trip up on the periods.
+    text_before_slice = re.sub("(?P<lol>Note\s*[0-9]+)\s*\.", "\g<lol>", text_before_slice)
+    #print "New:", text_before_slice
     
     # strip everything except those words after the last punctuation mark.
     punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
@@ -40,26 +52,27 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 end_of_last_sentence_index = i
                 break
         
-        # no punct marks at all?! Raise an error; something is screwed up.
+       #print "LAST FRAGMENT: ", punctuated_tokens[end_of_last_sentence_index + 1:]
         if end_of_last_sentence_index is not None:
-#            raise Exception("No punct marks found in:" + ''.join(blob + ' ' for blob in punctuated_tokens))
-            #if _does_section_contain_verbs(punctuated_tokens[end_of_last_sentence_index + 1:]):
-                for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # no. check the last sentence fragment. 
-                    
+#            if _does_section_contain_verbs(punctuated_tokens[end_of_last_sentence_index + 1:]):
+            for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # check the last sentence fragment. 
+
                     # found special word. this is not a complete sentence.
                     # these special words are here because there are all sorts of garbage sections
                     # that have verbs but are actually the text from graphs and charts.
-                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|include|disclose)", word, re.I):       
+                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|include|disclose|violate|approve)", word, re.I): 
+                       #print "MATCH:", word      
                         return True
-    
+                
     return False
 
 def _does_section_contain_verbs(words):
     
-    #print "WORDS:", words
     contains_verbs = False
-    for _, pos in nltk.pos_tag(words):  # classify words into parts of speech.
-        if re.match("VB[^G]", pos):
+    verbs = VerbClassifier()
+    for word in words:
+        if verbs.is_word_a_common_verb(word):
+           #print "VERB MATCH:", word
             contains_verbs = True
             break
     
@@ -68,7 +81,7 @@ def _does_section_contain_verbs(words):
     
 def _check_whether_chunk_is_new_section(location, hits):
     
-    #print "CHECKING:", hits[location]
+   #print "CHECKING:", hits[location]
 
     words_in_hit = nltk.word_tokenize(hits[location])
     
@@ -76,12 +89,12 @@ def _check_whether_chunk_is_new_section(location, hits):
     if not _does_section_contain_verbs(words_in_hit):
         return False
     
-    #print "VERB CHECK PASS"
+   #print "VERB CHECK PASS"
     
     if _check_whether_section_is_part_of_another_section(location, hits):
         return False
     
-    #print "FRAGMENT CHECK PASS"
+   #print "FRAGMENT CHECK PASS"
     
     # does it contain weird XML/HTML elements? probably not what we want.
     for word in words_in_hit:
@@ -89,7 +102,7 @@ def _check_whether_chunk_is_new_section(location, hits):
             #print "MATCH:", word
             return False
     
-    #print "JUNK TAG CHECK PASS"
+   #print "JUNK TAG CHECK PASS"
     
     return True
 
@@ -113,7 +126,14 @@ def _check_whether_header_is_valuable(location, hits):
             #print word, header
             break
     
-    if contains_keyword is False:
+    if not contains_keyword:
+        return False
+    
+    # now check for common bigrams that we don't want.
+    compressed_header = ''.join(word for word in header)
+    
+    if re.search("LEASE\s*COMMITMENT", compressed_header, re.I | re.M | re.S)   \
+    or re.search("ENERGY\s*COMMITMENT", compressed_header, re.I | re.M | re.S):
         return False
     
     return True
@@ -146,7 +166,7 @@ def _get_all_viable_hits(text):
         
         for i in xrange(len(hits)):
             
-            if record_text is False:
+            if not record_text:
                 if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                     record_text = True
                     record_header, recorder = _set_up_recorder(i, hits)
@@ -161,7 +181,7 @@ def _get_all_viable_hits(text):
                     else:
                         results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)
                     
-                    recorder = []
+                    recorder = list()
                     record_header = None
                     
                     if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
@@ -170,6 +190,7 @@ def _get_all_viable_hits(text):
                     
                 else:
                     recorder.append(hits[i])
+                    #print "APPENDED:", hits[i]
         
         if len(recorder) > 0 and record_header is not None:
             record = ''.join(blob for blob in recorder)
@@ -186,8 +207,7 @@ def _get_all_viable_hits(text):
 #        print results[result]   
         
 #    exit(0)
-    return ''.join(results[key] for key in results)
-    
+    return ''.join(results[key] + '\n\n' for key in results)
 
 def get_best_litigation_note_hits(text, cutoff=None):
     if cutoff is not None:
