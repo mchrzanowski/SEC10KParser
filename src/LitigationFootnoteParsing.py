@@ -11,9 +11,15 @@ import nltk
 import re
 import Utilities
 
+def _check_whether_this_hit_contains_common_endings(location, hits):
+    if re.search("ITEM\s*9", hits[location], re.I | re.M | re.S):
+        hits[location] = re.sub("ITEM\s*9.*", "", hits[location], flags=re.I | re.M | re.S)
+        return True
+    
+    return False
 
 def _check_if_valid_ending(location, hits):
-   #print "CHECKING FOR ENDING:", hits[location]
+    #print "CHECKING FOR ENDING:", hits[location]
     if _check_whether_section_is_part_of_another_section(location, hits) or _check_whether_header_is_valuable(location, hits):
         return False
     else:
@@ -21,7 +27,7 @@ def _check_if_valid_ending(location, hits):
     
 def _check_whether_section_is_part_of_another_section(location, hits):
     
-   #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
+    #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
     
     # now check as to whether we're still in a sentence. 
     # 1). cut everything beforehand into sentences.
@@ -36,6 +42,15 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     # strip everything except those words after the last punctuation mark.
     punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
     
+    # check to make sure the last few words don't contain ITEM or NOTE ....
+    # also, no months!
+    last_previous_word = nltk.word_tokenize(text_before_slice)[-1]
+    if re.match("(ITEM|NOTE|Section)", last_previous_word, re.I):
+        return True
+    
+    if re.match("(Jan|Feb|mar|apr|may|jun|july|aug|sept|oct|nov|dec)", last_previous_word, re.I):
+        return True
+    
     if not re.match("[.?!]", punctuated_tokens[-1][-1]):        # did we end on a normal punct mark?
         
         # no. rewind until we find the last word ending in a punct mark.
@@ -46,7 +61,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 end_of_last_sentence_index = i
                 break
         
-       #print "LAST FRAGMENT: ", punctuated_tokens[end_of_last_sentence_index + 1:]
+        #print "LAST FRAGMENT: ", punctuated_tokens[end_of_last_sentence_index + 1:]
         if end_of_last_sentence_index is not None:
 #            if _does_section_contain_verbs(punctuated_tokens[end_of_last_sentence_index + 1:]):
             for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # check the last sentence fragment. 
@@ -55,7 +70,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                     # these special words are here because there are all sorts of garbage sections
                     # that have verbs but are actually the text from graphs and charts.
                     if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|include|disclose|violate|approve)", word, re.I): 
-                       #print "MATCH:", word      
+                        #print "MATCH:", word      
                         return True
                 
     return False
@@ -86,10 +101,13 @@ def _check_whether_chunk_is_new_section(location, hits):
     #print "VERB CHECK PASS"
    
     # check to make sure the last few words don't contain ITEM or NOTE ....
-    previous_section = nltk.word_tokenize(hits[location - 2])[-1:]
-    for word in previous_section:
-        if re.match("(ITEM|NOTE)", word, re.I):
-            return False
+    # also, no months!
+#    previous_section = nltk.word_tokenize(hits[location - 2])[-1:]
+#    for word in previous_section:
+#        if re.match("(ITEM|NOTE|Section)", word, re.I):
+#            return False
+#        if re.match("Jan|Feb|mar|apr|may|jun|july|aug|sept|oct|nov|dec", word, re.I):
+#            return False
     
     if _check_whether_section_is_part_of_another_section(location, hits):
         return False
@@ -227,9 +245,8 @@ def _get_all_viable_hits(text):
     #exit(0)
     return ''.join(results[key] + '\n\n' for key in results)
 
-def get_best_litigation_note_hits(text, cutoff=None):
-    if cutoff is not None:
-        text = text.split(cutoff)[1]
+def get_best_litigation_note_hits(text):
+
     # rip out common places for periods.
     text = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text, flags = re.I | re.M | re.S)
     text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
