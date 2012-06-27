@@ -20,7 +20,7 @@ def run():
     print "Regression Runtime:%r seconds." % (end - start) 
 
 def _character_count_test(CIK, filing_year, new_data, corpus_file):
-
+    
     parser_alpha_numeric_count =  Utilities.get_alpha_numeric_count(''.join(blob for blob in new_data))
 
     with open(corpus_file, 'r') as f:
@@ -41,12 +41,20 @@ def _character_count_test(CIK, filing_year, new_data, corpus_file):
 def _litigation_footnote_unit_test(CIK, filing_year, corpus_file):
     processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
     result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data, get_litigation_footnotes_only=True)
+    
+    if processed_website_data is None:
+        CorpusAccess.write_processed_url_data_to_file(data=result.processed_text, CIK=result.CIK, filing_year=result.filing_year)
+    
     _character_count_test(CIK, filing_year, result.legal_note_mentions, corpus_file)
 
 def _legal_proceeding_unit_test(CIK, filing_year, corpus_file):
                 
     processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
     result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data, get_legal_proceeding_only=True)
+    
+    if processed_website_data is None:
+        CorpusAccess.write_processed_url_data_to_file(data=result.processed_text, CIK=result.CIK, filing_year=result.filing_year)
+    
     _character_count_test(CIK, filing_year, result.legal_proceeding_mention, corpus_file)
 
 def _walk_corpus_file_directory_and_call_unit_test(unit_test, corpus_walker):    

@@ -31,7 +31,8 @@ class TextSanitizer(object):
         return text
     
     def clean_text(self):
-        self.text = self.remove_email_addresses(self.text)
-        self.text = self.remove_monetary_figures(self.text)
-        self.text = self.remove_urls(self.text)
+        pass
+        #self.text = self.remove_email_addresses(self.text)
+        #self.text = self.remove_monetary_figures(self.text)
+        #self.text = self.remove_urls(self.text)
         

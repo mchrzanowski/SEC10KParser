@@ -57,10 +57,7 @@ def convert_html_into_clean_text(data):
     
     # Part 2
     # step 4: strip the HTML tags.
-    # step 5: remove terms that are not regularized (eg, email addresses) 
-    #         and replace with a regularized token (eg, emailaddr)
     data = HTMLTagStripper.strip(data)            
-    data = TextSanitizer.sanitize(data) 
     
     return data
 

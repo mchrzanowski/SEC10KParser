@@ -33,10 +33,6 @@ def _check_whether_section_is_part_of_another_section(location, hits):
         
     text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2)  # assume the token is hits[location - 1]
     
-    
-    # rip out common places for periods.
-    text_before_slice = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text_before_slice, flags = re.I | re.M | re.S)
-    
     # strip everything except those words after the last punctuation mark.
     punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
     
@@ -70,7 +66,7 @@ def _does_section_contain_verbs(words):
     verbs = VerbClassifier()
     for word in words:
         if verbs.is_word_a_common_verb(word):
-           #print "VERB MATCH:", word
+            #print "VERB MATCH:", word
             contains_verbs = True
             break
     
@@ -79,7 +75,7 @@ def _does_section_contain_verbs(words):
     
 def _check_whether_chunk_is_new_section(location, hits):
     
-   #print "CHECKING:", hits[location]
+    #print "CHECKING:", hits[location]
 
     words_in_hit = nltk.word_tokenize(hits[location])
     
@@ -87,31 +83,47 @@ def _check_whether_chunk_is_new_section(location, hits):
     if not _does_section_contain_verbs(words_in_hit):
         return False
     
-   #print "VERB CHECK PASS"
+    #print "VERB CHECK PASS"
+   
+    # check to make sure the last few words don't contain ITEM or NOTE ....
+    previous_section = nltk.word_tokenize(hits[location - 2])[-1:]
+    for word in previous_section:
+        if re.match("(ITEM|NOTE)", word, re.I):
+            return False
     
     if _check_whether_section_is_part_of_another_section(location, hits):
         return False
     
-   #print "FRAGMENT CHECK PASS"
+    #print "FRAGMENT CHECK PASS"
     
     # does it contain weird XML/HTML elements? probably not what we want.
     for word in words_in_hit:
         if re.search("(XML$|^td$|^div$|^valign$|falsefalse|truefalse|falsetrue|link:[0-9]+px|font-family|xml)", word):
-           #print "MATCH:", word
+            #print "MATCH:", word
             return False
     
-   #print "JUNK TAG CHECK PASS"
+    #print "JUNK TAG CHECK PASS"
     
     return True
 
-        
+
+def _is_number(s):
+    s = re.sub(",", "", s)
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 def _get_header_of_chunk(location, hits):
     ''' return the header '''
-    return nltk.word_tokenize(hits[location])[:5]
+    return nltk.word_tokenize(hits[location])[:4]
 
 def _check_whether_header_is_valuable(location, hits):
     
     header = _get_header_of_chunk(location, hits)
+    
+    #print "CHECKING HEADER:", header
     
     # header *has* to contain some special keywords.
     contains_keyword = False    
@@ -119,13 +131,16 @@ def _check_whether_header_is_valuable(location, hits):
         if re.match("(L[iI][tT][iI][gG][aA][tT][iI][oO][nN]|" + \
         "C[oO][nN][tT][iI][nN][gG][eE][nN][cC]|" + \
         "C[oO][mM][mM][iI][tT][mM][eE][nN][tT]|" + \
-        "P[rR][oO][cC][eE][eE][dD][iI][nN][gG])", word):
+        "P[rR][oO][cC][eE][eE][dD][iI][nN][gG]|" + \
+        "C[oO][nN][tT][iI][gG][eE][nN][cC][iI][eE][sS])", word):
             contains_keyword = True
             #print word, header
             break
     
     if not contains_keyword:
         return False
+
+    #print "GOT HERE"
     
     # now check for common bigrams that we don't want.
     compressed_header = ''.join(word for word in header)
@@ -133,6 +148,11 @@ def _check_whether_header_is_valuable(location, hits):
     if re.search("LEASE\s*COMMITMENT", compressed_header, re.I | re.M | re.S)   \
     or re.search("ENERGY\s*COMMITMENT", compressed_header, re.I | re.M | re.S):
         return False
+    
+    # first words are never numbers.
+    if _is_number(header[0]) or _is_number(header[1]):
+        return False
+    
     
     return True
 
@@ -148,7 +168,7 @@ def _get_all_viable_hits(text):
     def _set_up_recorder(location, hits):
         recorder = list()
         record_header = ''.join(blob for blob in _get_header_of_chunk(i, hits))
-       #print "CREATED:", record_header
+        #print "CREATED:", record_header
         recorder.append(hits[i - 1])   # assuming this is the token.
         recorder.append(hits[i])
         return record_header, recorder
@@ -210,5 +230,9 @@ def _get_all_viable_hits(text):
 def get_best_litigation_note_hits(text, cutoff=None):
     if cutoff is not None:
         text = text.split(cutoff)[1]
+    # rip out common places for periods.
+    text = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text, flags = re.I | re.M | re.S)
+    text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
+    
     return _get_all_viable_hits(text)
     
