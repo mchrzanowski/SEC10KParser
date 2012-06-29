@@ -47,8 +47,12 @@ def get_processed_website_data_from_corpus(CIK, filing_year):
 
 def wipe_existing_failed_unit_tests():
     if os.path.exists(Constants.PATH_TO_FAILED_UNIT_TESTS):
-        for sub_folder in os.listdir(Constants.PATH_TO_FAILED_UNIT_TESTS):
-            shutil.rmtree(os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, sub_folder))
+        for sub_item in os.listdir(Constants.PATH_TO_FAILED_UNIT_TESTS):
+            item = os.path.join(Constants.PATH_TO_FAILED_UNIT_TESTS, sub_item)
+            if os.path.isdir(item):
+                shutil.rmtree(item)
+            else:
+                os.remove(item)
         print "Previous failed unit tests deleted."
 
 def write_comparison_to_file(new_output, old_output, CIK, filing_year):

@@ -8,18 +8,22 @@ import re
 
 def get_document_parsing_regexes():
     return _sections_start_with_word_note(), \
-        _two_numbers_and_a_period(),    \
-        _two_numbers_and_a_backslash(), \
-        _two_numbers_in_parentheses()
+        _two_numbers_and_a_period_and_spaces(),    \
+        _two_numbers_and_a_backslash_and_spaces(), \
+        _two_numbers_in_parentheses(), \
+        _two_numbers_and_a_period_no_spaces()
 
 def _sections_start_with_word_note():
     return re.compile("(Note\s*[0-9]+)", re.I | re.M | re.S)
 
-def _two_numbers_and_a_period():
-    return re.compile("((?<!ITEM)\s+[0-9]{1,2}\s*\.)", re.I | re.M | re.S)
+def _two_numbers_and_a_period_and_spaces():
+    return re.compile("((?<!ITEM)\s+[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)
 
-def _two_numbers_and_a_backslash():
-    return re.compile("((?<!ITEM)\s+[0-9]{1,2}\s*/)", re.I | re.M | re.S)
+def _two_numbers_and_a_backslash_and_spaces():
+    return re.compile("((?<!ITEM)\s+[0-2]?[0-9]\s*/)", re.I | re.M | re.S)
 
 def _two_numbers_in_parentheses():
-    return re.compile("(\([0-9]{1,2}\))", re.M )
+    return re.compile("(\([0-2]?[0-9]\))", re.M)
+
+def _two_numbers_and_a_period_no_spaces():
+    return re.compile("((?<!ITEM)(\s*)[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)

@@ -171,7 +171,6 @@ def _check_whether_header_is_valuable(location, hits):
     if _is_number(header[0]) or _is_number(header[1]):
         return False
     
-    
     return True
 
 def _choose_best_hit_for_given_header(current, new):
