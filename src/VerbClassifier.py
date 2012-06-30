@@ -4,6 +4,7 @@ Created on Jun 25, 2012
 @author: mchrzanowski
 '''
 
+import Constants
 import os.path
 import re
 import nltk.stem.porter
@@ -33,5 +34,6 @@ class VerbClassifier(object):
         verbs = set()
         with open(self.PATH_TO_VERB_FILE) as f:
             for line in f:
-                verbs.add(line.strip())
+                if Constants.FLAG_INDICATING_VERB_SHOULD_BE_SKIPPED not in line:
+                    verbs.add(line.strip())
         return verbs

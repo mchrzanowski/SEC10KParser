@@ -8,6 +8,8 @@ import os.path
 
 CIK_CODE_LENGTH = 10
 
+FLAG_INDICATING_VERB_SHOULD_BE_SKIPPED = '#'
+
 PATH_TO_CORPUS = './corpus/'
 
 PATH_TO_LEGAL_FOOTNOTE_CORPUS = os.path.join(PATH_TO_CORPUS, 'legal_footnotes')

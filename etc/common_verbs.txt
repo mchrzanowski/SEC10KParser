@@ -10,7 +10,7 @@ abrogate
 absent
 absolve
 absorb
-abstract
+#abstract
 abuse
 abut
 accelerate
@@ -290,7 +290,7 @@ blink
 blister
 blitz
 bloat
-block
+#block
 blockade
 blot
 blow
@@ -556,7 +556,7 @@ commence
 commend
 comment
 commercialize
-commit
+#commit
 communicate
 commute
 compare

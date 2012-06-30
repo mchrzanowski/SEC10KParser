@@ -12,9 +12,9 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0001295810')
+    CIK = Utilities.format_CIK('0000845434')
     
-    for i in xrange(2005, 2006 + 1):
+    for i in xrange(2004, 2012 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, i)
         
@@ -23,25 +23,28 @@ def main():
             processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, i)
 
             results = Litigation10KParsing.parse(CIK, i, processed_website_data=processed_data)   
-                        
-            #for mention in l.mentions: print mention    
+            
+            print "Wrote Processed URL Data: ",
+              
             if processed_data is None:        
                 CorpusAccess.write_processed_url_data_to_file(data=results.processed_text, CIK=results.CIK, filing_year=results.filing_year)
-                print "Wrote processed url data"
+                print "YES"
             else:
-                print "Skipped writing processed url data."
+                print "NO"
             
+            print "Wrote Legal Proceeding Data: ",
             if results.legal_proceeding_mention is not None:
                 CorpusAccess.write_to_legal_proceeding_corpus(CIK=results.CIK, data=results.legal_proceeding_mention, filing_year=results.filing_year)
-                print "Wrote legal proceeding data to corpus."
+                print "YES"
             else:
-                print "No Legal Proceeding Section to Write!"
-                
+                print "NO"
+            
+            print "Wrote Legal Footnote Data: ",    
             if len(results.legal_note_mentions) > 0:
                 CorpusAccess.write_to_litigation_footnote_corpus(results.legal_note_mentions, results.CIK, results.filing_year)
-                print "Wrote legal footnotes to corpus."
+                print "YES"
             else:
-                print "No legal footnotes to write!"
+                print "NO"
             
         except Exception as exception:
             print "Exception: ", exception

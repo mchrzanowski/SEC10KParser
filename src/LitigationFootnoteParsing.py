@@ -11,12 +11,6 @@ import nltk
 import re
 import Utilities
 
-def _check_whether_this_hit_contains_common_endings(location, hits):
-    if re.search("ITEM\s*9", hits[location], re.I | re.M | re.S):
-        hits[location] = re.sub("ITEM\s*9.*", "", hits[location], flags=re.I | re.M | re.S)
-        return True
-    
-    return False
 
 def _check_if_valid_ending(location, hits):
     #print "CHECKING FOR ENDING:", hits[location]
@@ -37,7 +31,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     #        These are special words usually indicating that we're still in a given section
     #        but that we're referring to another footnote of the 10-K.
         
-    text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2)  # assume the token is hits[location - 1]
+    text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and location >= num // 2)  # assume the token is hits[location - 1]
     
     # strip everything except those words after the last punctuation mark.
     punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
@@ -150,7 +144,9 @@ def _check_whether_header_is_valuable(location, hits):
         "C[oO][nN][tT][iI][nN][gG][eE][nN][cC]|" + \
         "C[oO][mM][mM][iI][tT][mM][eE][nN][tT]|" + \
         "P[rR][oO][cC][eE][eE][dD][iI][nN][gG]|" + \
-        "C[oO][nN][tT][iI][gG][eE][nN][cC][iI][eE][sS])", word):
+        "C[oO][nN][tT][iI][gG][eE][nN][cC][iI][eE][sS]|" + \
+        "L[eE][gG][aA][lL]|" +
+        "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT])", word):
             contains_keyword = True
             #print word, header
             break
@@ -158,17 +154,20 @@ def _check_whether_header_is_valuable(location, hits):
     if not contains_keyword:
         return False
 
-    #print "GOT HERE"
-    
     # now check for common bigrams that we don't want.
     compressed_header = ''.join(word for word in header)
     
     if re.search("LEASE\s*COMMITMENT", compressed_header, re.I | re.M | re.S)   \
-    or re.search("ENERGY\s*COMMITMENT", compressed_header, re.I | re.M | re.S):
+    or re.search("ENERGY\s*COMMITMENT", compressed_header, re.I | re.M | re.S)  \
+    or re.search("Indemnity", compressed_header, re.I | re.M | re.S)    \
+    or re.search("Legal\s*Fees", compressed_header, re.I | re.M | re.S) \
+    or re.search("Reimbursement", compressed_header, re.I | re.M | re.S):
         return False
     
     # first words are never numbers.
-    if _is_number(header[0]) or _is_number(header[1]):
+    if _is_number(header[0]):
+        return False
+    if len(header) >= 2 and _is_number(header[1]):
         return False
     
     return True
@@ -179,6 +178,33 @@ def _choose_best_hit_for_given_header(current, new):
         return new
     
     return current
+
+def _subsequent_event_text_handler(text):
+    
+    # check to see whether the text mentions litigation:
+    if not re.search('(litigation|legal)', text, re.I):
+        return ''
+    
+    return text
+
+def _cut_text_if_needed(text):
+    
+    
+    # text might be too long because this is the last
+    # legal footnote. so cut it along markers that would
+    # not be OK to cut on normally.
+    
+    regexes = [re.compile("ITEM\s*9.*", re.I | re.M | re.S),    \
+               re.compile("P[uU][bB][lL][iI][cC]\s*A[cC]{2}[oO][uU][nN][tT][iI][nN][gG]\s*F[iI][rR][mM].*", re.M | re.S), \
+               re.compile("QUARTERLY\s*(\w+\s*){0,5}\s*\(Unaudited.*", re.I | re.M | re.S),
+               re.compile("SCHEDULE\s*II.*", re.I | re.M | re.S)    ]
+    
+    for regex in regexes:
+        if re.search(regex, text):
+            text = re.sub(regex, "", text)
+        
+    return text
+    
 
 def _get_all_viable_hits(text):
     
@@ -210,6 +236,11 @@ def _get_all_viable_hits(text):
                 if not re.match(regex, hits[i]) and _check_if_valid_ending(i, hits):
                     record_text = False
                     record = ''.join(blob for blob in recorder)
+                        
+                    record = _cut_text_if_needed(record)
+                    
+                    if re.search("SUBSEQUENT", record_header, re.I):
+                        record = _subsequent_event_text_handler(record)
                     
                     if record_header not in results:
                         results[record_header] = record
@@ -228,7 +259,14 @@ def _get_all_viable_hits(text):
                     #print "APPENDED:", hits[i]
         
         if len(recorder) > 0 and record_header is not None:
+            
             record = ''.join(blob for blob in recorder)
+                        
+            record = _cut_text_if_needed(record)
+            
+            if re.search("SUBSEQUENT", record_header, re.I):
+                record = _subsequent_event_text_handler(record)
+            
             if record_header not in results:
                 results[record_header] = record
             else:
@@ -236,12 +274,7 @@ def _get_all_viable_hits(text):
                 
         if len(results) > 0:
             break           # one type of regex is used. only one. notes don't take on different formats within the 10-K.
-        
-    #for result in results:
-        #print "NEW:"
-        #print results[result]   
-        
-    #exit(0)
+
     return ''.join(results[key] + '\n\n' for key in results)
 
 def get_best_litigation_note_hits(text):
