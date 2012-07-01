@@ -11,14 +11,46 @@ import nltk
 import re
 import Utilities
 
+_word_tokenize_cache = dict()
 
 def _check_if_valid_ending(location, hits):
     #print "CHECKING FOR ENDING:", hits[location]
-    if _check_whether_section_is_part_of_another_section(location, hits) or _check_whether_header_is_valuable(location, hits):
+    if _check_whether_section_is_part_of_another_section(location, hits) \
+    or _check_whether_header_is_valuable(location, hits):
         return False
     else:
         return True
     
+    
+def _check_whether_this_section_is_a_nearby_numeric_section(location, hits, record_footnote_number):
+    
+    if len(hits[location]) > 1000:
+        return False
+    
+    if record_footnote_number is None:
+        return False
+    
+    new_record_number = _get_footnote_number(location, hits)
+    #print "IS IT OVER?", record_footnote_number, hits[location - 1], new_record_number
+    
+    if new_record_number is None:
+        return False
+    
+    if new_record_number - 2 == record_footnote_number \
+    or new_record_number - 1 == record_footnote_number:
+        return True
+    
+    return False
+
+def _get_footnote_number(location, hits):
+    number_match = re.search("[0-9]+", ''.join(blob for blob in _get_header_of_chunk(location, hits)), flags=re.M)
+    
+    if number_match is not None and _contains_numbers(number_match.group(0)):
+        return int(number_match.group(0))
+    
+    return None
+
+_another_section_cache = dict()
 def _check_whether_section_is_part_of_another_section(location, hits):
     
     #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
@@ -31,18 +63,20 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     #        These are special words usually indicating that we're still in a given section
     #        but that we're referring to another footnote of the 10-K.
         
-    text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and location >= num // 2)  # assume the token is hits[location - 1]
-    
-    # strip everything except those words after the last punctuation mark.
-    punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
+    if hits[location] in _another_section_cache:
+        punctuated_tokens = _another_section_cache[hits[location]]
+    else:
+        text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and location >= 4 * num // 5)
+        # strip everything except those words after the last punctuation mark.
+        punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
+        _another_section_cache[hits[location]] = punctuated_tokens
     
     # check to make sure the last few words don't contain ITEM or NOTE ....
     # also, no months!
-    last_previous_word = nltk.word_tokenize(text_before_slice)[-1]
-    if re.match("(ITEM|NOTE|Section)", last_previous_word, re.I):
+    if re.match("(ITEM|NOTE|Section)", punctuated_tokens[-1], re.I):
         return True
     
-    if re.match("(Jan|Feb|mar|apr|may|jun|july|aug|sept|oct|nov|dec)", last_previous_word, re.I):
+    if re.match("(Jan|Feb|mar|apr|may|jun|july|aug|sept|oct|nov|dec)", punctuated_tokens[-1], re.I):
         return True
     
     if not re.match("[.?!]", punctuated_tokens[-1][-1]):        # did we end on a normal punct mark?
@@ -69,24 +103,27 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 
     return False
 
+_verbs = VerbClassifier()
 def _does_section_contain_verbs(words):
     
     contains_verbs = False
-    verbs = VerbClassifier()
     for word in words:
-        if verbs.is_word_a_common_verb(word):
+        if _verbs.is_word_a_common_verb(word):
             #print "VERB MATCH:", word
             contains_verbs = True
             break
     
     return contains_verbs
     
-    
 def _check_whether_chunk_is_new_section(location, hits):
     
     #print "CHECKING:", hits[location]
 
-    words_in_hit = nltk.word_tokenize(hits[location])
+    if hits[location] in _word_tokenize_cache:
+        words_in_hit = _word_tokenize_cache[hits[location]]
+    else:
+        words_in_hit = nltk.word_tokenize(hits[location])
+        _word_tokenize_cache[hits[location]] = words_in_hit
     
     # does it contain verbs? detritus usually doesn't.    
     if not _does_section_contain_verbs(words_in_hit):
@@ -118,19 +155,21 @@ def _check_whether_chunk_is_new_section(location, hits):
     
     return True
 
-
-def _is_number(s):
-    s = re.sub(",", "", s)
-    s = re.sub("/", "", s)
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
+def _contains_numbers(s):
+    
+    for char in s:
+        if char.isdigit():
+            return True
+    return False
 
 def _get_header_of_chunk(location, hits):
     ''' return the header '''
-    return nltk.word_tokenize(hits[location])[:4]
+    if hits[location] in _word_tokenize_cache:
+        return _word_tokenize_cache[hits[location]][:4]
+    else:
+        words = nltk.word_tokenize(hits[location])
+        _word_tokenize_cache[hits[location]] = words
+        return words[:4]
 
 def _check_whether_header_is_valuable(location, hits):
     
@@ -167,10 +206,10 @@ def _check_whether_header_is_valuable(location, hits):
         return False
     
     # first words are never numbers.
-    if _is_number(header[0]):
+    if _contains_numbers(header[0]):
         return False
     
-    if len(header) >= 2 and _is_number(header[1]):
+    if len(header) >= 2 and _contains_numbers(header[1]):
         return False
     
     return True
@@ -238,6 +277,7 @@ def _get_all_viable_hits(text):
                 if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                     record_text = True
                     record_header, recorder = _set_up_recorder(i, hits)
+                    #record_footnote_number = _get_footnote_number(i - 1, hits)
 
             else:
                 if not re.match(regex, hits[i]) and _check_if_valid_ending(i, hits):
@@ -260,6 +300,7 @@ def _get_all_viable_hits(text):
                     if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
                         record_header, recorder = _set_up_recorder(i, hits)
+                        #record_footnote_number = _get_footnote_number(i - 1, hits)
                     
                 else:
                     recorder.append(hits[i])
