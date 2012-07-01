@@ -12,9 +12,9 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0000845434')
+    CIK = Utilities.format_CIK('0000879993')
     
-    for i in xrange(2004, 2012 + 1):
+    for i in xrange(2005, 2005 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, i)
         
@@ -28,23 +28,23 @@ def main():
               
             if processed_data is None:        
                 CorpusAccess.write_processed_url_data_to_file(data=results.processed_text, CIK=results.CIK, filing_year=results.filing_year)
-                print "YES"
+                print "\tYES"
             else:
-                print "NO"
+                print "\tNO"
             
             print "Wrote Legal Proceeding Data: ",
             if results.legal_proceeding_mention is not None:
                 CorpusAccess.write_to_legal_proceeding_corpus(CIK=results.CIK, data=results.legal_proceeding_mention, filing_year=results.filing_year)
-                print "YES"
+                print "\tYES"
             else:
-                print "NO"
+                print "\tNO"
             
             print "Wrote Legal Footnote Data: ",    
             if len(results.legal_note_mentions) > 0:
                 CorpusAccess.write_to_litigation_footnote_corpus(results.legal_note_mentions, results.CIK, results.filing_year)
-                print "YES"
+                print "\tYES"
             else:
-                print "NO"
+                print "\tNO"
             
         except Exception as exception:
             print "Exception: ", exception

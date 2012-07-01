@@ -121,6 +121,7 @@ def _check_whether_chunk_is_new_section(location, hits):
 
 def _is_number(s):
     s = re.sub(",", "", s)
+    s = re.sub("/", "", s)
     try:
         float(s)
         return True
@@ -161,12 +162,14 @@ def _check_whether_header_is_valuable(location, hits):
     or re.search("ENERGY\s*COMMITMENT", compressed_header, re.I | re.M | re.S)  \
     or re.search("Indemnity", compressed_header, re.I | re.M | re.S)    \
     or re.search("Legal\s*Fees", compressed_header, re.I | re.M | re.S) \
-    or re.search("Reimbursement", compressed_header, re.I | re.M | re.S):
+    or re.search("Reimbursement", compressed_header, re.I | re.M | re.S) \
+    or re.search("Assistance.*Litigation", compressed_header, re.I | re.M | re.S):
         return False
     
     # first words are never numbers.
     if _is_number(header[0]):
         return False
+    
     if len(header) >= 2 and _is_number(header[1]):
         return False
     
@@ -197,7 +200,9 @@ def _cut_text_if_needed(text):
     regexes = [re.compile("ITEM\s*9.*", re.I | re.M | re.S),    \
                re.compile("P[uU][bB][lL][iI][cC]\s*A[cC]{2}[oO][uU][nN][tT][iI][nN][gG]\s*F[iI][rR][mM].*", re.M | re.S), \
                re.compile("QUARTERLY\s*(\w+\s*){0,5}\s*\(Unaudited.*", re.I | re.M | re.S),
-               re.compile("SCHEDULE\s*II.*", re.I | re.M | re.S)    ]
+               re.compile("SCHEDULE\s*II.*", re.I | re.M | re.S),   \
+               re.compile("(^\s*exhibit[^s].*|^\s*EXHIBIT.*)", re.M | re.S), \
+               re.compile("S[iI][gG][nN][aA][tT][uU][rR][eE][sS]?.*", re.M | re.S)]
     
     for regex in regexes:
         if re.search(regex, text):
@@ -219,6 +224,8 @@ def _get_all_viable_hits(text):
     results = dict()
     
     for regex in LFRC.get_document_parsing_regexes():
+        
+        #print "NEW regex:", regex.pattern
         
         hits = re.split(regex, text)
         
@@ -272,16 +279,41 @@ def _get_all_viable_hits(text):
             else:
                 results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)  
                 
-        if len(results) > 0:
+        if _are_results_from_this_regex_split_acceptable(results):
             break           # one type of regex is used. only one. notes don't take on different formats within the 10-K.
 
     return ''.join(results[key] + '\n\n' for key in results)
 
+def _are_results_from_this_regex_split_acceptable(results):
+    '''# do one of the headers mention "CONTINGENCY" or "COMMITMENT" ? 
+    # results *almost always* do
+    
+    for header in results:
+        if re.search("COMMITMENT", header, re.I) \
+        or re.search("CONTINGENC", header, re.I):
+            return True
+        
+    # next, check the actual text. maybe it's there?
+    for header in results:
+        if re.search("COMMITMENT", results[header], re.I) \
+        or re.search("CONTINGENC", header, re.I):
+            return True
+    
+    return False
+    '''
+    return len(results) > 0
+        
+    
 def get_best_litigation_note_hits(text):
 
     # rip out common places for periods.
     text = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text, flags = re.I | re.M | re.S)
     text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
+    
+    # rip out the exhibits
+    chunks = re.split("^\s*EXHIBIT\s*INDEX\s", text, flags=re.I | re.M | re.S)
+    if len(chunks) > 2:
+        text = ''.join(chunks[chunk] for chunk in xrange(len(chunks) - 1))
     
     return _get_all_viable_hits(text)
     
