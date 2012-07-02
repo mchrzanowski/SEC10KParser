@@ -91,14 +91,31 @@ def _check_whether_section_is_part_of_another_section(location, hits):
         
         #print "LAST FRAGMENT: ", punctuated_tokens[end_of_last_sentence_index + 1:]
         if end_of_last_sentence_index is not None:
+            
+            found_special_word_that_might_be_from_a_table = False
+            found_special_word_that_probably_isnt_from_a_table = False
+            
             for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # check the last sentence fragment. 
 
                     # found special word. this is not a complete sentence.
                     # these special words are here because there are all sorts of garbage sections
                     # that have verbs but are actually the text from graphs and charts.
-                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|disclose|violate|approve)", word, re.I): 
+                    if re.search("(under)", word, re.I): 
                         #print "MATCH:", word      
-                        return True
+                        found_special_word_that_might_be_from_a_table = True
+                    
+                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZEd|disclose|violate|approve)", word, re.I): 
+                        found_special_word_that_probably_isnt_from_a_table = True
+            
+            if found_special_word_that_probably_isnt_from_a_table:
+                return True
+            
+            if found_special_word_that_might_be_from_a_table:
+                compressed_fragment = ''.join(blob for blob in punctuated_tokens[end_of_last_sentence_index + 1:])
+                if re.search("in\s*(millions|thousands|billions)", compressed_fragment, re.I | re.M | re.S):  # prob a table.
+                    return False
+                else:
+                    return True
                 
     return False
 
