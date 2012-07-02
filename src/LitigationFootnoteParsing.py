@@ -14,11 +14,13 @@ import Utilities
 _word_tokenize_cache = dict()
 
 def _check_if_valid_ending(location, hits):
-    #print "CHECKING FOR ENDING:", hits[location]
+    #print "CHECKING FOR ENDING:", hits[location], "DONE."
     if _check_whether_section_is_part_of_another_section(location, hits) \
     or _check_whether_header_is_valuable(location, hits):
+        #print "NO ENDING"
         return False
     else:
+        #print "ENDING."
         return True
     
     
@@ -273,6 +275,9 @@ def _get_all_viable_hits(text):
         
         for i in xrange(len(hits)):
             
+            if i & 1 != 0:
+                continue
+            
             if not record_text:
                 if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                     record_text = True
@@ -280,7 +285,7 @@ def _get_all_viable_hits(text):
                     #record_footnote_number = _get_footnote_number(i - 1, hits)
 
             else:
-                if not re.match(regex, hits[i]) and _check_if_valid_ending(i, hits):
+                if not re.search(regex, hits[i]) and _check_if_valid_ending(i, hits):
                     record_text = False
                     record = ''.join(blob for blob in recorder)
                         
@@ -304,7 +309,6 @@ def _get_all_viable_hits(text):
                     
                 else:
                     recorder.append(hits[i])
-                    #print "APPENDED:", hits[i]
         
         if len(recorder) > 0 and record_header is not None:
             
