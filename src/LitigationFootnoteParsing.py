@@ -57,14 +57,6 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     
     #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
     
-    # now check as to whether we're still in a sentence. 
-    # 1). cut everything beforehand into sentences.
-    # 2A). if the last paragraph ends in a punk mark, we're good.
-    # 2B). if not, it could be detritus like 'table of contents' or something. check everything
-    #        past the last real sentence to see whether the words 'see' or 'refer' are there.
-    #        These are special words usually indicating that we're still in a given section
-    #        but that we're referring to another footnote of the 10-K.
-        
     if hits[location] in _another_section_cache:
         punctuated_tokens = _another_section_cache[hits[location]]
     else:
@@ -74,11 +66,17 @@ def _check_whether_section_is_part_of_another_section(location, hits):
         _another_section_cache[hits[location]] = punctuated_tokens
     
     # check to make sure the last few words don't contain ITEM or NOTE ....
-    # also, no months!
     if re.match("(ITEM|NOTE|Section)", punctuated_tokens[-1], re.I):
         return True
     
-    if re.match("(Jan|Feb|mar|apr|may|jun|july|aug|sept|oct|nov|dec)", punctuated_tokens[-1], re.I):
+    # also, no months!
+    if re.match("(Jan((uary)|[^A-Za-z])|Feb((ruary)|[^A-Za-z])|mar((ch)|[^A-Za-z])|apr((il)|[^A-Za-z])|may)", punctuated_tokens[-1], re.I):
+        return True
+    
+    if re.match("(jun((e)|[^A-Za-z])|july|aug((ust)|[^A-Za-z])|sept((ember)|[^A-Za-z])|oct((ober)|[^A-Za-z]))", punctuated_tokens[-1], re.I):
+        return True
+    
+    if re.match("(nov((ember)|[^A-Za-z])|dec((ember)|[^A-Za-z]))", punctuated_tokens[-1], re.I):
         return True
     
     if not re.match("[.?!]", punctuated_tokens[-1][-1]):        # did we end on a normal punct mark?
@@ -132,15 +130,6 @@ def _check_whether_chunk_is_new_section(location, hits):
     
     #print "VERB CHECK PASS"
    
-    # check to make sure the last few words don't contain ITEM or NOTE ....
-    # also, no months!
-#    previous_section = nltk.word_tokenize(hits[location - 2])[-1:]
-#    for word in previous_section:
-#        if re.match("(ITEM|NOTE|Section)", word, re.I):
-#            return False
-#        if re.match("Jan|Feb|mar|apr|may|jun|july|aug|sept|oct|nov|dec", word, re.I):
-#            return False
-    
     if _check_whether_section_is_part_of_another_section(location, hits):
         return False
     
@@ -206,6 +195,11 @@ def _check_whether_header_is_valuable(location, hits):
     or re.search("Assistance.*Litigation", compressed_header, re.I | re.M | re.S):
         return False
     
+    # we only want subsequent event headers; nothing more.
+    if re.search("S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]", compressed_header) \
+    and not re.search("Subsequent.*?Event", compressed_header, re.I):
+        return False
+    
     # first words are never numbers.
     if _contains_numbers(header[0]):
         return False
@@ -237,12 +231,14 @@ def _cut_text_if_needed(text):
     # legal footnote. so cut it along markers that would
     # not be OK to cut on normally.
     
-    regexes = [re.compile("ITEM\s*9.*", re.I | re.M | re.S),    \
+    regexes = [re.compile("ITEM\s*(4|9).*", re.I | re.M | re.S),    \
                re.compile("P[uU][bB][lL][iI][cC]\s*A[cC]{2}[oO][uU][nN][tT][iI][nN][gG]\s*F[iI][rR][mM].*", re.M | re.S), \
                re.compile("QUARTERLY\s*(\w+\s*){0,5}\s*\(Unaudited.*", re.I | re.M | re.S),
                re.compile("SCHEDULE\s*II.*", re.I | re.M | re.S),   \
                re.compile("(^\s*exhibit[^s].*|^\s*EXHIBIT.*)", re.M | re.S), \
-               re.compile("S[iI][gG][nN][aA][tT][uU][rR][eE][sS]?.*", re.M | re.S)]
+               re.compile("S[iI][gG][nN][aA][tT][uU][rR][eE][sS]?.*", re.M | re.S), \
+               re.compile("Executive\s*Officers\s*of\s*the\s*registrant.*", re.I | re.M | re.S), \
+               re.compile("The\s*Board\s*of\s*Directors\s*and\s*Stockholders.*", re.I | re.M | re.S) ]
     
     for regex in regexes:
         if re.search(regex, text):
@@ -270,11 +266,14 @@ def _get_all_viable_hits(text):
         hits = re.split(regex, text)
         
         record_text = False
+        record_header = None
         recorder = list()
         
         for i in xrange(len(hits)):
             
+            # odd-numbered tokens are the things we actually split on
             if i & 1 != 0:
+                recorder.append(hits[i])
                 continue
             
             if not record_text:

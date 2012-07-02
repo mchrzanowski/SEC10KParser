@@ -7,7 +7,8 @@ Created on Jun 12, 2012
 import re
 
 def get_document_parsing_regexes():
-    return _sections_start_with_word_note(), \
+    return _sections_start_with_word_note_and_are_numbered(), \
+        _sections_start_with_word_note_and_are_lettered(), \
         _two_numbers_and_a_period_and_spaces(),    \
         _sections_start_with_an_uppercase_letter(), \
         _two_numbers_and_a_backslash_and_spaces(), \
@@ -24,8 +25,11 @@ def get_document_parsing_regexes():
 def _sections_start_with_an_uppercase_letter():
     return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
 
-def _sections_start_with_word_note():
+def _sections_start_with_word_note_and_are_numbered():
     return re.compile("((?<!\()Note\s*[0-9]+)", re.I | re.M | re.S)
+
+def _sections_start_with_word_note_and_are_lettered():
+    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z])", re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)
