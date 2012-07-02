@@ -9,25 +9,23 @@ import re
 def get_document_parsing_regexes():
     return _sections_start_with_word_note(), \
         _two_numbers_and_a_period_and_spaces(),    \
+        _sections_start_with_an_uppercase_letter(), \
         _two_numbers_and_a_backslash_and_spaces(), \
         _two_numbers_in_parentheses(), \
         _two_numbers_and_a_period_no_spaces(), \
         _two_numbers_and_a_parenthesis_and_spaces(), \
-        _sections_start_with_an_uppercase_letter_and_headers_are_in_caps(), \
         _two_numbers_and_no_period_with_one_space_with_capitals(), \
         _two_numbers_and_no_period_with_spaces_with_capitals(), \
         _two_numbers_and_a_period_and_spaces_no_pre_numeric_restrictions(), \
         _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions(), \
         _whitespace_followed_by_newline_and_a_few_words(), \
         
-def _sections_start_with_an_uppercase_letter_and_headers_are_in_caps_with_spaces():
-    return re.compile("(^\s*[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
 
-def _sections_start_with_an_uppercase_letter_and_headers_are_in_caps():
-    return re.compile("(^\s*[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
+def _sections_start_with_an_uppercase_letter():
+    return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
 
 def _sections_start_with_word_note():
-    return re.compile("(Note\s*[0-9]+)", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note\s*[0-9]+)", re.I | re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)

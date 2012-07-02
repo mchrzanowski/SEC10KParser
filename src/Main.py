@@ -12,9 +12,9 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0000062996')
+    CIK = Utilities.format_CIK('0000096021')
     
-    for i in xrange(2004, 2012 + 1):
+    for i in xrange(2005, 2005 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, i)
         

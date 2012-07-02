@@ -93,13 +93,12 @@ def _check_whether_section_is_part_of_another_section(location, hits):
         
         #print "LAST FRAGMENT: ", punctuated_tokens[end_of_last_sentence_index + 1:]
         if end_of_last_sentence_index is not None:
-#            if _does_section_contain_verbs(punctuated_tokens[end_of_last_sentence_index + 1:]):
             for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # check the last sentence fragment. 
 
                     # found special word. this is not a complete sentence.
                     # these special words are here because there are all sorts of garbage sections
                     # that have verbs but are actually the text from graphs and charts.
-                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|include|disclose|violate|approve)", word, re.I): 
+                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZE|disclose|violate|approve)", word, re.I): 
                         #print "MATCH:", word      
                         return True
                 
@@ -330,22 +329,7 @@ def _get_all_viable_hits(text):
     return ''.join(results[key] + '\n\n' for key in results)
 
 def _are_results_from_this_regex_split_acceptable(results):
-    '''# do one of the headers mention "CONTINGENCY" or "COMMITMENT" ? 
-    # results *almost always* do
     
-    for header in results:
-        if re.search("COMMITMENT", header, re.I) \
-        or re.search("CONTINGENC", header, re.I):
-            return True
-        
-    # next, check the actual text. maybe it's there?
-    for header in results:
-        if re.search("COMMITMENT", results[header], re.I) \
-        or re.search("CONTINGENC", header, re.I):
-            return True
-    
-    return False
-    '''
     return len(results) > 0
         
     
@@ -354,11 +338,15 @@ def get_best_litigation_note_hits(text):
     # rip out common places for periods.
     text = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text, flags = re.I | re.M | re.S)
     text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
-    
+    text = re.sub("(?P<before>[A-Z][a-z]+)\s+[A-Z]\.\s+(?P<after>[A-Z][a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
+    text = re.sub("U\s*\.\s*S\.", "US", text, flags=re.I | re.M | re.S)
+    text = re.sub("N\s*\.\s*A\.", "NA", text, flags=re.I | re.M | re.S)
+    text = re.sub("K\s*\.\s*K\.", "KK", text, flags=re.I | re.M | re.S)
+
     # rip out the exhibits
-    chunks = re.split("^\s*EXHIBIT\s*INDEX\s", text, flags=re.I | re.M | re.S)
-    if len(chunks) > 2:
-        text = ''.join(chunks[chunk] for chunk in xrange(len(chunks) - 1))
+#    chunks = re.split("^\s*EXHIBIT\s*INDEX\s", text, flags=re.I | re.M | re.S)
+#    if len(chunks) > 2:
+#        text = ''.join(chunks[chunk] for chunk in xrange(len(chunks) - 1))
     
     return _get_all_viable_hits(text)
     
