@@ -100,11 +100,11 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                     # found special word. this is not a complete sentence.
                     # these special words are here because there are all sorts of garbage sections
                     # that have verbs but are actually the text from graphs and charts.
-                    if re.search("(under)", word, re.I): 
+                    if re.search("(under|SUMMARIZEd)", word, re.I): 
                         #print "MATCH:", word      
                         found_special_word_that_might_be_from_a_table = True
                     
-                    if re.search("(SEE|DISCUSS|REFER|describe|SUMMARIZEd|disclose|violate|approve)", word, re.I): 
+                    if re.search("(SEE|DISCUSS|REFER|describe|disclose|violate|approve)", word, re.I): 
                         found_special_word_that_probably_isnt_from_a_table = True
             
             if found_special_word_that_probably_isnt_from_a_table:
@@ -112,10 +112,14 @@ def _check_whether_section_is_part_of_another_section(location, hits):
             
             if found_special_word_that_might_be_from_a_table:
                 compressed_fragment = ''.join(blob for blob in punctuated_tokens[end_of_last_sentence_index + 1:])
+                
                 if re.search("in\s*(millions|thousands|billions)", compressed_fragment, re.I | re.M | re.S):  # prob a table.
                     return False
-                else:
-                    return True
+                
+                if re.search("follows", compressed_fragment, re.I | re.M | re.S):
+                    return False
+                
+                return True
                 
     return False
 
@@ -255,7 +259,9 @@ def _cut_text_if_needed(text):
                re.compile("(^\s*exhibit[^s].*|^\s*EXHIBIT.*)", re.M | re.S), \
                re.compile("S[iI][gG][nN][aA][tT][uU][rR][eE][sS]?.*", re.M | re.S), \
                re.compile("Executive\s*Officers\s*of\s*the\s*registrant.*", re.I | re.M | re.S), \
-               re.compile("The\s*Board\s*of\s*Directors\s*and\s*Stockholders.*", re.I | re.M | re.S) ]
+               re.compile("The\s*Board\s*of\s*Directors\s*and\s*Stockholders.*", re.I | re.M | re.S), \
+               re.compile("\.xml.*", re.I | re.M | re.S), \
+               re.compile(" XBRL .*", re.I | re.M | re.S) ]
     
     for regex in regexes:
         if re.search(regex, text):
@@ -347,22 +353,31 @@ def _get_all_viable_hits(text):
 def _are_results_from_this_regex_split_acceptable(results):
     
     return len(results) > 0
-        
-    
-def get_best_litigation_note_hits(text):
 
-    # rip out common places for periods.
-    text = re.sub("(?P<lol>(Note|Item)\s*[0-9]+)\s*\.", "\g<lol>", text, flags = re.I | re.M | re.S)
+def _edit_text_to_remove_periods(text):
+    ''' rip out common places for periods for easier parsing '''
+    
+    # periods right after common demarcations.
+    text = re.sub("(?P<section>(Note|Item)\s*[0-9]+)\s*\.", "\g<section>", text, flags = re.I | re.M | re.S)
+    
+    # decimal points
     text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
-    text = re.sub("(?P<before>[A-Z][a-z]+)\s+[A-Z]\.\s+(?P<after>[A-Z][a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
+    
+    # names with middle initials
+    text = re.sub("(?P<before>[A-Z][a-z]+) +[A-Z]\.\s+(?P<after>[A-Z][a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
+    
+    # common abbreviations with periods.
     text = re.sub("U\s*\.\s*S\.", "US", text, flags=re.I | re.M | re.S)
+    text = re.sub("D\s*\.\s*C\.", "DC", text, flags=re.I | re.M | re.S)
     text = re.sub("N\s*\.\s*A\.", "NA", text, flags=re.I | re.M | re.S)
     text = re.sub("K\s*\.\s*K\.", "KK", text, flags=re.I | re.M | re.S)
-
-    # rip out the exhibits
-#    chunks = re.split("^\s*EXHIBIT\s*INDEX\s", text, flags=re.I | re.M | re.S)
-#    if len(chunks) > 2:
-#        text = ''.join(chunks[chunk] for chunk in xrange(len(chunks) - 1))
+    text = re.sub("No\.", "No", text, flags=re.M | re.S) 
+    
+    return text
+    
+def get_best_litigation_note_hits(text):
+    
+    text = _edit_text_to_remove_periods(text)
     
     return _get_all_viable_hits(text)
     

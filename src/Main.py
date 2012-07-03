@@ -12,17 +12,17 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0000804212')
+    CIK = Utilities.format_CIK('0000060302')
     
-    for i in xrange(2004, 2012 + 1):
+    for year in xrange(2004, 2012 + 1):
                 
-        print "Begin:\tCIK:%s\t%s" % (CIK, i)
+        print "Begin:\tCIK:%s\t%s" % (CIK, year)
         
         try:
             
-            processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, i)
+            processed_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, year)
 
-            results = Litigation10KParsing.parse(CIK, i, processed_website_data=processed_data)   
+            results = Litigation10KParsing.parse(CIK, year, processed_website_data=processed_data)   
             
             print "Wrote Processed URL Data: ",
               

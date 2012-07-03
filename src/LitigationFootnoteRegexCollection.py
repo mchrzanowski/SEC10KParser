@@ -21,6 +21,11 @@ def get_document_parsing_regexes():
         _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions(), \
         _whitespace_followed_by_newline_and_a_few_words(), \
         
+def _whitespace_followed_by_hardcoded_headers_in_caps():
+    return re.compile("^\s*(?=(COMMITMENTS|LEGAL|LITIGATION|SUBSEQUENT\s*EVENT|CONTINGENC))", re.M | re.S)
+
+def _whitespace_followed_by_hardcoded_headers():
+    return re.compile("^\s*(?=(COMMITMENTS|LEGAL|LITIGATION|SUBSEQUENT\s*EVENT|CONTINGENC))", re.I | re.M | re.S)
 
 def _sections_start_with_an_uppercase_letter():
     return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
