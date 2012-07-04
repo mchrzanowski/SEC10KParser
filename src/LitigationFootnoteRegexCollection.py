@@ -20,48 +20,51 @@ def get_document_parsing_regexes():
         _two_numbers_and_a_period_and_spaces_no_pre_numeric_restrictions(), \
         _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions(), \
         _whitespace_followed_by_newline_and_a_few_words(), \
-        
+
 def _whitespace_followed_by_hardcoded_headers_in_caps():
-    return re.compile("^\s*(?=(COMMITMENTS|LEGAL|LITIGATION|SUBSEQUENT\s*EVENT|CONTINGENC))", re.M | re.S)
+    return re.compile("(^\s*(?=COMMITMENT|LEGAL|LITIGATION|SUBSEQUENT|CONTINGENC|INCOME|SEGMENT|EQUITY|STOCK|SALE|CRITICAL|LONG|DISCOUNT|PENSION|OTHER|NET|))", re.M | re.S)
 
 def _whitespace_followed_by_hardcoded_headers():
-    return re.compile("^\s*(?=(COMMITMENTS|LEGAL|LITIGATION|SUBSEQUENT\s*EVENT|CONTINGENC))", re.I | re.M | re.S)
+    return re.compile("(^\s*(?=COMMITMENTS|LEGAL|LITIGATION|SUBSEQUENT\s*EVENT|CONTINGENC))", re.I | re.M | re.S)
+
+def _hardcoded_headers():
+    return re.compile("(\s*(?=COMMITMENTS|LEGAL|LITIGATION|SUBSEQUENT\s*EVENT|CONTINGENC))", re.I | re.M | re.S)
 
 def _sections_start_with_an_uppercase_letter():
     return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered():
-    return re.compile("((?<!\()Note\s*[0-9]+)", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note\s*[0-9]+(?!\s*,))", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered():
     return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z])", re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
-    return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)
+    return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\.)", re.I | re.M | re.S)
 
 def _two_numbers_and_a_backslash_and_spaces():
-    return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s*/)", re.I | re.M | re.S)
+    return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*/)", re.I | re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces_no_pre_numeric_restrictions():
-    return re.compile("((?<![M/])\s+[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)
+    return re.compile("((?<![M/])\s+[0-3]?[0-9]\s*\.)", re.I | re.M | re.S)
 
 def _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions():
-    return re.compile("((?<![M/])(\s*)[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)
+    return re.compile("((?<![M/])\s*[0-3]?[0-9]\s*\.)", re.I | re.M | re.S)
 
 def _two_numbers_in_parentheses():
     return re.compile("(\([0-2]?[0-9]\))", re.M)
 
 def _two_numbers_and_a_period_no_spaces():
-    return re.compile("((?<![M/0-9])(\s*)[0-2]?[0-9]\s*\.)", re.I | re.M | re.S)
+    return re.compile("((?<![M/0-9])\s*[0-3]?[0-9]\s*\.)", re.I | re.M | re.S)
 
 def _two_numbers_and_no_period_with_one_space_with_capitals():
-    return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s(?=[A-Z]))", re.M | re.S)
+    return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s(?=[A-Z]))", re.M | re.S)
 
 def _two_numbers_and_no_period_with_spaces_with_capitals():
-    return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s+(?=[A-Z]))", re.M | re.S)
+    return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s+(?=[A-Z]))", re.M | re.S)
 
 def _whitespace_followed_by_newline_and_a_few_words():
-    return re.compile("(\n+^(?!ITEM)(?=(\w+\s){1,4}\n))", re.I | re.M | re.S)
+    return re.compile("(\n^(?!ITEM)(?=(?:\w+\s){1,4}\n))", re.I | re.M | re.S)
 
 def _two_numbers_and_a_parenthesis_and_spaces():
-    return re.compile("((?<![M/0-9])\s+[0-2]?[0-9]\s*\)\.?)", re.I | re.M | re.S)
+    return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\)\.?)", re.I | re.M | re.S)
