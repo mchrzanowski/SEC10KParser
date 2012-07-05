@@ -44,8 +44,9 @@ def _check_whether_section_is_part_of_another_section(location, hits):
         punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
         _another_section_cache[hits[location]] = punctuated_tokens
     
-    # check to make sure the last few words don't contain ITEM or NOTE ....
-    if re.match("(ITEM|NOTE|Section)", punctuated_tokens[-1], re.I):
+    # check to make sure the last few words don't contain common words 
+    # that have numbers after them.
+    if re.match("ITEM|NOTE|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
         return True
     
     # also, no months!
@@ -73,6 +74,18 @@ def _check_whether_section_is_part_of_another_section(location, hits):
         #print "LAST FRAGMENT: ", punctuated_tokens[end_of_last_sentence_index + 1:]
         if end_of_last_sentence_index is not None:
             
+            compressed_fragment = ''.join(blob for blob in punctuated_tokens[end_of_last_sentence_index + 1:])
+            
+            # everything is contained in parentheses? probably OK.
+            if re.search("^\(.*\)$", compressed_fragment, flags=re.M | re.S):
+                return False
+            
+            # common terms with numbers after them.
+            if re.search("Units?\s*[0-9]*$", compressed_fragment) \
+            or re.search("Region\s*[0-9]*$", compressed_fragment) \
+            or re.search("USC\s*[0-9]*$", compressed_fragment):
+                return True
+            
             found_special_word_that_might_be_from_a_table = False
             found_special_word_that_probably_isnt_from_a_table = False
             
@@ -81,11 +94,11 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                     # found special word. this is not a complete sentence.
                     # these special words are here because there are all sorts of garbage sections
                     # that have verbs but are actually the text from graphs and charts.
-                    if re.search("(under|SUMMARIZEd|included)", word, re.I): 
+                    if re.search("under|SUMMARIZEd|included", word, re.I): 
                         #print "MATCH:", word
                         found_special_word_that_might_be_from_a_table = True
                     
-                    if re.match("(SEE|DISCUSS|REFER|describe|disclose|violate|approve|USC|unit$|units$)", word, re.I): 
+                    if re.match("SEE|DISCUSS|REFER|describe|disclose|violate|approve", word, re.I): 
                         #print "MATCH:", word
                         found_special_word_that_probably_isnt_from_a_table = True
             
@@ -93,7 +106,6 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 return True
             
             if found_special_word_that_might_be_from_a_table:
-                compressed_fragment = ''.join(blob for blob in punctuated_tokens[end_of_last_sentence_index + 1:])
                 
                 # now, do additional checks to see whether we picked up a table. 
                 # tables normally have units of currency as well as the word follows somewhere.
@@ -108,8 +120,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                     return False
                 
                 return True
-                
-                
+
     return False
 
 _verbs = VerbClassifier()
@@ -150,7 +161,7 @@ def _check_whether_chunk_is_new_section(location, hits):
     
     top_section = ''.join(blob for blob in re.split("\n\n+", hits[location])[:3])
     
-    #print "FIRST:" + first_paragraph + "DONE"
+    #print "FIRST:" + top_section + "DONE"
     
     if re.search("XML|/td|^div$|^valign$|falsefalse|truefalse|falsetrue" + \
                  "|link:[0-9]+px|font-family|link:|background-color|utf-8;" + \
@@ -160,7 +171,8 @@ def _check_whether_chunk_is_new_section(location, hits):
     #print "JUNK TAG CHECK PASS"
     
     # does it contain the phrase "this Amendment"? If so, it's probably not what we want.
-    if re.search("this\s*Amendment", hits[location]):
+    if re.search("this\s*Amendment", hits[location][:len(hits[location]) // 4]):
+        #print "FAIL ON Amendment check"
         return False
     
     return True
@@ -307,7 +319,7 @@ def _get_all_viable_hits(text):
                     record_text = True
                     record_header, recorder = _set_up_recorder(i, hits)
             else:
-                if not re.search(regex, hits[i]) and _check_if_valid_ending(i, hits):
+                if _check_if_valid_ending(i, hits):
                     record_text = False
                     record = ''.join(blob for blob in recorder)
                         
@@ -356,7 +368,7 @@ def _are_results_from_this_regex_split_acceptable(results):
 
 def _edit_text_to_remove_periods(text):
     ''' rip out common places for periods for easier parsing '''
-    
+
     # periods right after common demarcations
     text = re.sub("(?P<section>(Note|Item)\s*[0-9]+)\s*\.", "\g<section>", text, flags = re.I | re.M | re.S)
     
@@ -368,11 +380,15 @@ def _edit_text_to_remove_periods(text):
     
     # common abbreviations with periods.
     text = re.sub("U\s*\.\s*S\.\s*C\.", "USC", text, flags=re.I | re.M | re.S)
+    text = re.sub("B\.\s*S\.\s*C\.", " BSC ", text, flags=re.I | re.M | re.S)
+
     text = re.sub("U\s*\.\s*S\.", "US", text, flags=re.I | re.M | re.S)
     text = re.sub("D\s*\.\s*C\.", "DC", text, flags=re.I | re.M | re.S)
     text = re.sub("N\s*\.\s*A\.", "NA", text, flags=re.I | re.M | re.S)
     text = re.sub("K\s*\.\s*K\.", "KK", text, flags=re.I | re.M | re.S)
     text = re.sub("No\.", "No", text, flags=re.M | re.S) 
+    
+    text = re.sub("(?P<before>[A-Z])\s*\.(?P<after>[A-Z])\s*\.", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
     
     return text
 
