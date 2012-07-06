@@ -14,34 +14,11 @@ import Utilities
 _word_tokenize_cache = dict()
 
 def _check_if_valid_ending(location, hits):
-    #print "CHECKING FOR ENDING:", hits[location], "DONE."
     if _check_whether_section_is_part_of_another_section(location, hits) \
     or _check_whether_header_is_valuable(location, hits):
-        #print "NO ENDING"
         return False
     else:
-        #print "ENDING."
         return True
-
-def _dollar_and_year_count(section):
-    dollar_count = 0
-    year_count = 0
-    
-    for index, char in enumerate(section):
-        
-        if char == '$':
-            dollar_count += 1
-            
-        elif char in 'yY' and index + 3 < len(section) \
-        and section[index+1] in 'eE' and section[index+2] in 'aA' \
-        and section[index+3] in 'rR':
-            year_count += 1
-            
-    
-    if year_count > 3 or dollar_count > 3:
-        return True
-    
-    return False
 
 _another_section_cache = dict()
 def _check_whether_section_is_part_of_another_section(location, hits):
@@ -109,9 +86,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
             if left_parens > right_parens:
                 return True
             
-            found_special_word_that_might_be_from_a_table = False
-            found_special_word_that_probably_isnt_from_a_table = False
-                
+            found_special_word_that_might_be_from_a_table = False                
             
             for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # check the last sentence fragment. 
 
@@ -121,27 +96,22 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 if re.search("see|under|SUMMARIZEd|included|DISCUSS|REFER|describe|disclose|violate|approve", word, re.I): 
                     #print "MATCH:", word
                     found_special_word_that_might_be_from_a_table = True
-                        
-                #if re.match("", word, re.I): 
-                    #print "MATCH:", word
-                #    found_special_word_that_probably_isnt_from_a_table = True
-                
-                if found_special_word_that_probably_isnt_from_a_table:
-                    return True
-                
-                if found_special_word_that_might_be_from_a_table:
+                    break
+
+            if found_special_word_that_might_be_from_a_table:
                     
-                    # now, do additional checks to see whether we picked up a table. 
-                    # tables normally have units of currency as well as the word follows somewhere.
-                    # if these hold, then we're probably in a table from a previous section and we can 
-                    # safely start a new section.
-                    if re.search("(in)?\s*(millions|thousands|billions)", compressed_fragment, re.I | re.M | re.S) \
-                    and re.search("total|follows", compressed_fragment, re.I | re.M | re.S):
-                        #print "MATCH ON currency"
-                        #print 'MATCH ON FOLLOWS|total'
-                        return False
+                # now, do additional checks to see whether we picked up a table. 
+                # tables normally have units of currency as well as the word follows somewhere.
+                # if these hold, then we're probably in a table from a previous section and we can 
+                # safely start a new section.
+                if re.search("(in)?\s*(millions|thousands|billions)", compressed_fragment, re.I | re.M | re.S) \
+                and re.search("total|follows", compressed_fragment, re.I | re.M | re.S):
+                    #print "MATCH ON currency"
+                    #print 'MATCH ON FOLLOWS|total'
+                    return False
                     
-                    return True
+                return True
+            
     return False
 
 _verbs = VerbClassifier()
@@ -329,8 +299,6 @@ def _get_all_viable_hits(text):
                         results[record_header] = list()
                         
                     results[record_header].append(record + '\n\n')
-                    #else:
-                    #    results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)
                     
                     recorder = list()
                     record_header = None
@@ -352,12 +320,12 @@ def _get_all_viable_hits(text):
             
             if record_header not in results:
                 results[record_header] = list()
-            #else:
-            #    results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)  
+
             results[record_header].append(record + '\n\n')
                 
         if _are_results_from_this_regex_split_acceptable(results):
-            break           # one type of regex is used. only one. notes don't take on different formats within the 10-K.
+            # one type of regex is used. only one. notes don't take on different formats within the 10-K.
+            break           
 
     return ''.join(''.join(blob for blob in results[key]) + '\n\n' for key in results)
 
