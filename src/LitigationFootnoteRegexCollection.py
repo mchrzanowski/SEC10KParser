@@ -61,10 +61,10 @@ def get_names_of_headers_we_dont_want():
     re.compile("Contingent.*Interest",  re.I | re.M | re.S),  ]
 
 def _sections_start_with_word_note_and_are_numbered():
-    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,AB]))", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,AB]))(?!\s*[`'\"])", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered_more_freeform():
-    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,]))", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,]))(?!\s*[`'\"])", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered():
     return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z])", re.M | re.S)

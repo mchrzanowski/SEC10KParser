@@ -17,14 +17,11 @@ def _check_whether_chunk_is_new_section(hit):
         picked up by the regexes from the table of contents or something
     '''
     # check to see whether it belongs to the table of contents
-    hit_is_acceptable = False
     for token in nltk.word_tokenize(hit):
-        
         if re.match(LPRC.common_words_in_legitimate_legal_proceeding_hits(), token):
-            hit_is_acceptable = True
-            break
+            return True
         
-    return hit_is_acceptable
+    return False
 
 def _get_all_possible_hits(text):
     

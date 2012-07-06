@@ -224,6 +224,10 @@ def _check_whether_header_is_valuable(location, hits):
     if len(header) >= 2 and _contains_numbers(header[1]):
         return False
     
+#    if re.search('`', compressed_header) \
+#    or re.search('"', compressed_header):
+#        return False
+    
     return True
 
 def _subsequent_event_text_handler(text):
@@ -335,7 +339,8 @@ def _edit_text_to_remove_periods(text):
     text = re.sub("(?P<section>(Note|Item)\s*[0-9]+)\s*\.", "\g<section> ", text, flags = re.I | re.M | re.S)
     
     # decimal points
-    text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
+    for _ in xrange(5):
+        text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
     
     # names with middle initials
     text = re.sub("(?P<before>[A-Z][a-z]+) +[A-Z]\.\s+(?P<after>[A-Z][a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
