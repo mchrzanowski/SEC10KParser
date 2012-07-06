@@ -23,13 +23,25 @@ def _check_if_valid_ending(location, hits):
         #print "ENDING."
         return True
 
-def _get_footnote_number(location, hits):
-    number_match = re.search("[0-9]+", ''.join(blob for blob in _get_header_of_chunk(location, hits)), flags=re.M)
+def _dollar_and_year_count(section):
+    dollar_count = 0
+    year_count = 0
     
-    if number_match is not None and _contains_numbers(number_match.group(0)):
-        return int(number_match.group(0))
+    for index, char in enumerate(section):
+        
+        if char == '$':
+            dollar_count += 1
+            
+        elif char in 'yY' and index + 3 < len(section) \
+        and section[index+1] in 'eE' and section[index+2] in 'aA' \
+        and section[index+3] in 'rR':
+            year_count += 1
+            
     
-    return None
+    if year_count > 3 or dollar_count > 3:
+        return True
+    
+    return False
 
 _another_section_cache = dict()
 def _check_whether_section_is_part_of_another_section(location, hits):
@@ -39,7 +51,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     if hits[location] in _another_section_cache:
         punctuated_tokens = _another_section_cache[hits[location]]
     else:
-        text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and location >= 4 * num // 5)
+        text_before_slice = ''.join(hit for num, hit in enumerate(hits) if num <= location - 2 and location >= 5 * num // 6)
         # strip everything except those words after the last punctuation mark.
         punctuated_tokens = nltk.punkt.PunktWordTokenizer().tokenize(text_before_slice)
         _another_section_cache[hits[location]] = punctuated_tokens
@@ -47,16 +59,20 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     # check to make sure the last few words don't contain common words 
     # that have numbers after them.
     if re.match("ITEM|NOTE|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
+        #print 'MATCH ON end word regex'
         return True
     
     # also, no months!
     if re.match("(Jan((uary)|[^A-Za-z])|Feb((ruary)|[^A-Za-z])|mar((ch)|[^A-Za-z])|apr((il)|[^A-Za-z])|may)", punctuated_tokens[-1], re.I):
+        #print 'MATCH ON MONTH1'
         return True
     
     if re.match("(jun((e)|[^A-Za-z])|july|aug((ust)|[^A-Za-z])|sept((ember)|[^A-Za-z])|oct((ober)|[^A-Za-z]))", punctuated_tokens[-1], re.I):
+        #print 'MATCH ON MONTH2'
         return True
     
     if re.match("(nov((ember)|[^A-Za-z])|dec((ember)|[^A-Za-z]))", punctuated_tokens[-1], re.I):
+        #print 'MATCH ON MONTH3'
         return True
     
     if not re.match("[.?!]", punctuated_tokens[-1][-1]):        # did we end on a normal punct mark?
@@ -78,49 +94,54 @@ def _check_whether_section_is_part_of_another_section(location, hits):
             
             # everything is contained in parentheses? probably OK.
             if re.search("^\(.*\)$", compressed_fragment, flags=re.M | re.S):
+                #print 'MATCH on parens end'
                 return False
-            
+                
             # common terms with numbers after them.
             if re.search("Units?\s*[0-9]*$", compressed_fragment) \
             or re.search("Region\s*[0-9]*$", compressed_fragment) \
             or re.search("USC\s*[0-9]*$", compressed_fragment):
+                #print "MATCH on end words with numbers attached."
+                return True
+            
+            left_parens, right_parens = Utilities.count_parentheses(compressed_fragment)
+            
+            if left_parens > right_parens:
                 return True
             
             found_special_word_that_might_be_from_a_table = False
             found_special_word_that_probably_isnt_from_a_table = False
+                
             
             for word in punctuated_tokens[end_of_last_sentence_index + 1:]:     # check the last sentence fragment. 
 
-                    # found special word. this is not a complete sentence.
-                    # these special words are here because there are all sorts of garbage sections
-                    # that have verbs but are actually the text from graphs and charts.
-                    if re.search("under|SUMMARIZEd|included", word, re.I): 
-                        #print "MATCH:", word
-                        found_special_word_that_might_be_from_a_table = True
+                # found special word. this is not a complete sentence.
+                # these special words are here because there are all sorts of garbage sections
+                # that have verbs but are actually the text from graphs and charts.
+                if re.search("see|under|SUMMARIZEd|included|DISCUSS|REFER|describe|disclose|violate|approve", word, re.I): 
+                    #print "MATCH:", word
+                    found_special_word_that_might_be_from_a_table = True
+                        
+                #if re.match("", word, re.I): 
+                    #print "MATCH:", word
+                #    found_special_word_that_probably_isnt_from_a_table = True
+                
+                if found_special_word_that_probably_isnt_from_a_table:
+                    return True
+                
+                if found_special_word_that_might_be_from_a_table:
                     
-                    if re.match("SEE|DISCUSS|REFER|describe|disclose|violate|approve", word, re.I): 
-                        #print "MATCH:", word
-                        found_special_word_that_probably_isnt_from_a_table = True
-            
-            if found_special_word_that_probably_isnt_from_a_table:
-                return True
-            
-            if found_special_word_that_might_be_from_a_table:
-                
-                # now, do additional checks to see whether we picked up a table. 
-                # tables normally have units of currency as well as the word follows somewhere.
-                # if these hold, then we're probably in a table from a previous section and we can 
-                # safely start a new section.
-                if re.search("in\s*(millions|thousands|billions)", compressed_fragment, re.I | re.M | re.S):  
-                    #print "MATCH ON currency"
-                    return False
-                
-                if re.search("follows", compressed_fragment, re.I | re.M | re.S):
-                    #print 'MATCH ON FOLLOWS'
-                    return False
-                
-                return True
-
+                    # now, do additional checks to see whether we picked up a table. 
+                    # tables normally have units of currency as well as the word follows somewhere.
+                    # if these hold, then we're probably in a table from a previous section and we can 
+                    # safely start a new section.
+                    if re.search("(in)?\s*(millions|thousands|billions)", compressed_fragment, re.I | re.M | re.S) \
+                    and re.search("total|follows", compressed_fragment, re.I | re.M | re.S):
+                        #print "MATCH ON currency"
+                        #print 'MATCH ON FOLLOWS|total'
+                        return False
+                    
+                    return True
     return False
 
 _verbs = VerbClassifier()
@@ -163,9 +184,7 @@ def _check_whether_chunk_is_new_section(location, hits):
     
     #print "FIRST:" + top_section + "DONE"
     
-    if re.search("XML|/td|^div$|^valign$|falsefalse|truefalse|falsetrue" + \
-                 "|link:[0-9]+px|font-family|link:|background-color|utf-8;" + \
-                 "|us-gaap:|px|font", top_section, flags=re.I):
+    if re.search(LFRC.get_programming_fragment_check(), top_section):
         return False
     
     #print "JUNK TAG CHECK PASS"
@@ -242,13 +261,6 @@ def _check_whether_header_is_valuable(location, hits):
     
     return True
 
-def _choose_best_hit_for_given_header(current, new):
-    
-    if Utilities.get_alpha_numeric_count(new) < Utilities.get_alpha_numeric_count(current):
-        return new
-    
-    return current
-
 def _subsequent_event_text_handler(text):
     
     # check to see whether the text mentions litigation:
@@ -264,21 +276,7 @@ def _cut_text_if_needed(text):
     # legal footnote. so cut it along markers that would
     # not be OK to cut on normally.
     
-    regexes = [re.compile("ITEM\s*(4|9).*", re.I | re.M | re.S),    \
-               re.compile("P[uU][bB][lL][iI][cC]\s*A[cC]{2}[oO][uU][nN][tT][iI][nN][gG]\s*F[iI][rR][mM].*", re.M | re.S), \
-               re.compile("QUARTERLY\s*(\w+\s*){0,5}\s*\(Unaudited.*", re.I | re.M | re.S),
-               re.compile("SCHEDULE\s*II.*", re.I | re.M | re.S),   \
-               re.compile("(^\s*exhibit[^s].*|^\s*EXHIBIT.*)", re.M | re.S), \
-               re.compile("S[iI][gG][nN][aA][tT][uU][rR][eE][sS]?.*", re.M | re.S), \
-               re.compile("Executive\s*Officers\s*of\s*the\s*registrant.*", re.I | re.M | re.S), \
-               re.compile("The\s*Board\s*of\s*Directors\s*and\s*Stockholders.*", re.I | re.M | re.S), \
-               re.compile("\.xml.*", re.I | re.M | re.S), \
-               re.compile(" XBRL .*", re.I | re.M | re.S), \
-               re.compile("REPORT\s*ON\s*INTERNAL\s*CONTROL.*", re.I | re.M | re.S), \
-               re.compile("\.gif.*", re.I | re.M | re.S), \
-               re.compile("\.htm.*", re.I | re.M | re.S) ]
-    
-    for regex in regexes:
+    for regex in LFRC.get_cutting_regexes():
         if re.search(regex, text):
             text = re.sub(regex, "", text)
         
@@ -310,7 +308,6 @@ def _get_all_viable_hits(text):
         for i in xrange(len(hits)):
             
             if i & 1 == 1:
-                #print "TOKEN:" + hits[i]
                 recorder.append(hits[i])
                 continue
             
@@ -318,8 +315,8 @@ def _get_all_viable_hits(text):
                 if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                     record_text = True
                     record_header, recorder = _set_up_recorder(i, hits)
-            else:
-                if _check_if_valid_ending(i, hits):
+            
+            elif _check_if_valid_ending(i, hits):
                     record_text = False
                     record = ''.join(blob for blob in recorder)
                         
@@ -329,19 +326,20 @@ def _get_all_viable_hits(text):
                         record = _subsequent_event_text_handler(record)
                     
                     if record_header not in results:
-                        results[record_header] = record
-                    else:
-                        results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)
+                        results[record_header] = list()
+                        
+                    results[record_header].append(record + '\n\n')
+                    #else:
+                    #    results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)
                     
                     recorder = list()
                     record_header = None
                     
                     if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
-                        record_header, recorder = _set_up_recorder(i, hits)
-                    
-                else:
-                    recorder.append(hits[i])
+                        record_header, recorder = _set_up_recorder(i, hits)    
+            else:
+                recorder.append(hits[i])
         
         if len(recorder) > 0 and record_header is not None:
             
@@ -353,14 +351,15 @@ def _get_all_viable_hits(text):
                 record = _subsequent_event_text_handler(record)
             
             if record_header not in results:
-                results[record_header] = record
-            else:
-                results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)  
+                results[record_header] = list()
+            #else:
+            #    results[record_header] = _choose_best_hit_for_given_header(results[record_header], record)  
+            results[record_header].append(record + '\n\n')
                 
         if _are_results_from_this_regex_split_acceptable(results):
             break           # one type of regex is used. only one. notes don't take on different formats within the 10-K.
 
-    return ''.join(results[key] + '\n\n' for key in results)
+    return ''.join(''.join(blob for blob in results[key]) + '\n\n' for key in results)
 
 def _are_results_from_this_regex_split_acceptable(results):
     
@@ -370,7 +369,7 @@ def _edit_text_to_remove_periods(text):
     ''' rip out common places for periods for easier parsing '''
 
     # periods right after common demarcations
-    text = re.sub("(?P<section>(Note|Item)\s*[0-9]+)\s*\.", "\g<section>", text, flags = re.I | re.M | re.S)
+    text = re.sub("(?P<section>(Note|Item)\s*[0-9]+)\s*\.", "\g<section> ", text, flags = re.I | re.M | re.S)
     
     # decimal points
     text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)

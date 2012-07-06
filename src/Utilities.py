@@ -20,3 +20,14 @@ def format_CIK(data):
         data = '0' + data
 
     return data
+
+def count_parentheses(data):
+    left_parens = 0
+    right_parens = 0
+    for char in data:
+        if char == '(':
+            left_parens += 1
+        elif char == ')':
+            right_parens += 1
+            
+    return left_parens, right_parens
