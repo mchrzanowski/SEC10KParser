@@ -208,14 +208,9 @@ def _check_whether_header_is_valuable(location, hits):
     # now check for common bigrams that we don't want.
     compressed_header = ''.join(word for word in header)
     
-    if re.search("LEASE\s*COMMITMENT", compressed_header, re.I | re.M | re.S)   \
-    or re.search("ENERGY\s*COMMITMENT", compressed_header, re.I | re.M | re.S)  \
-    or re.search("Indemnity", compressed_header, re.I | re.M | re.S)    \
-    or re.search("Legal\s*Fees", compressed_header, re.I | re.M | re.S) \
-    or re.search("Reimbursement", compressed_header, re.I | re.M | re.S) \
-    or re.search("Assistance.*Litigation", compressed_header, re.I | re.M | re.S) \
-    or re.search("Contingent.*Interest", compressed_header, re.I | re.M | re.S):
-        return False
+    for regex in LFRC.get_names_of_headers_we_dont_want():
+        if re.search(regex, compressed_header):
+            return False
     
     # we only want subsequent event headers; nothing more.
     if re.search("S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]", compressed_header) \

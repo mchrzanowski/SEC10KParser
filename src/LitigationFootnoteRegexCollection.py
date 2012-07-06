@@ -9,6 +9,7 @@ import re
 def get_document_parsing_regexes():
     return _sections_start_with_word_note_and_are_numbered(), \
         _sections_start_with_word_note_and_are_numbered_more_freeform(), \
+        _note_sections_in_parentheses(), \
         _sections_start_with_word_note_and_are_lettered(), \
         _two_numbers_and_a_period_and_spaces(),    \
         _sections_start_with_an_uppercase_letter(), \
@@ -46,6 +47,18 @@ def get_programming_fragment_check():
 
 def _sections_start_with_an_uppercase_letter():
     return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
+
+def _note_sections_in_parentheses():
+    return re.compile("(\(\s*Note\s*[0-9]+(?![0-9,AB])\))", re.I | re.M | re.S)
+
+def get_names_of_headers_we_dont_want():
+    return [    re.compile("LEASE\s*COMMITMENT",  re.I | re.M | re.S),   \
+    re.compile("ENERGY\s*COMMITMENT",  re.I | re.M | re.S),  \
+    re.compile("Indemnity",  re.I | re.M | re.S),    \
+    re.compile("Legal\s*Fees",  re.I | re.M | re.S), \
+    re.compile("Reimbursement",  re.I | re.M | re.S), \
+    re.compile("Assistance.*Litigation",  re.I | re.M | re.S), \
+    re.compile("Contingent.*Interest",  re.I | re.M | re.S),  ]
 
 def _sections_start_with_word_note_and_are_numbered():
     return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,AB]))", re.I | re.M | re.S)
