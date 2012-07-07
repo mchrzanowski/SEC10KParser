@@ -75,8 +75,8 @@ def _walk_corpus_file_directory_and_call_unit_test(unit_test, corpus_walker):
 
 def run_regression_test_suite():
     CorpusAccess.wipe_existing_failed_unit_tests()
-    #_run_legal_proceeding_test_suite()
-    _run_legal_footnotes_test_suite()
+    _run_legal_proceeding_test_suite()
+    #_run_legal_footnotes_test_suite()
     
 def _run_legal_footnotes_test_suite():
     _walk_corpus_file_directory_and_call_unit_test(_litigation_footnote_unit_test, CorpusAccess.access_every_file_in_legal_footnotes_corpus)
