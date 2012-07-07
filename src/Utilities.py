@@ -21,13 +21,16 @@ def format_CIK(data):
 
     return data
 
-def count_parentheses(data):
-    left_parens = 0
-    right_parens = 0
+def character_counter(data, *chars):
+    
+    results = dict()  
+    
+    for char_arg in chars:
+        results[char_arg] = 0
+    
     for char in data:
-        if char == '(':
-            left_parens += 1
-        elif char == ')':
-            right_parens += 1
+       for index, char_arg in enumerate(chars):
+           if char == char_arg:
+               results[char_arg] += 1
             
-    return left_parens, right_parens
+    return results

@@ -13,15 +13,29 @@ import Utilities
 
 _word_tokenize_cache = dict()
 
-def _check_if_valid_ending(location, hits):
-    if _check_whether_section_is_part_of_another_section(location, hits) \
+def _check_if_valid_ending(location, hits, current_header_location):
+    if _check_whether_section_is_part_of_another_section(location, hits, current_header_location) \
     or _check_whether_header_is_valuable(location, hits):
         return False
     else:
         return True
+    
+    
+def _check_equality_of_two_note_tokens(first_token, second_token):
+    
+    if first_token is None or second_token is None:
+        return False
+    
+    first = re.search("(?P<note>Note)", first_token, re.I)
+    second = re.search("(?P<note>Note)", second_token, re.I)
+    
+    if first and second:
+        return first.group('note') == second.group('note')
+    
+    return False
 
 _another_section_cache = dict()
-def _check_whether_section_is_part_of_another_section(location, hits):
+def _check_whether_section_is_part_of_another_section(location, hits, current_header_location):
     
     #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
     
@@ -35,8 +49,19 @@ def _check_whether_section_is_part_of_another_section(location, hits):
     
     # check to make sure the last few words don't contain common words 
     # that have numbers after them.
-    if re.match("ITEM|NOTE|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
+    if re.match("ITEM|NOTE(?!S)|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
         #print 'MATCH ON end word regex'
+        return True
+    
+    # did the last section end with note *something*, and did the current section start with
+    # note? if so, we can move on; this is a new sentence.
+    if re.match("Note(?!S)", punctuated_tokens[-2], re.I) and re.search("Note(?!S)", hits[location - 1], re.I):
+        return False
+    
+    # make sure this section's Notes header matches the current header.
+    if current_header_location is not None and re.search("Note(?!S)", hits[current_header_location], re.I) \
+    and re.search("Note(?!S)",  hits[location - 1], re.I) \
+    and not _check_equality_of_two_note_tokens(hits[current_header_location], hits[location - 1]):
         return True
     
     # also, no months!
@@ -81,9 +106,9 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 #print "MATCH on end words with numbers attached."
                 return True
             
-            left_parens, right_parens = Utilities.count_parentheses(compressed_fragment)
+            char_frequency = Utilities.character_counter(compressed_fragment, '(', ')', '$')
             
-            if left_parens > right_parens:
+            if char_frequency['('] > char_frequency[')']:
                 return True
             
             found_special_word_that_might_be_from_a_table = False                
@@ -93,7 +118,7 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                 # found special word. this is not a complete sentence.
                 # these special words are here because there are all sorts of garbage sections
                 # that have verbs but are actually the text from graphs and charts.
-                if re.search("see|under|SUMMARIZEd|included|DISCUSS|REFER|describe|disclose|violate|approve", word, re.I): 
+                if re.search("see|under|SUMMARIZEd|included|DISCUSS|REFER|describe|disclose|violate|approve|further", word, re.I): 
                     #print "MATCH:", word
                     found_special_word_that_might_be_from_a_table = True
                     break
@@ -109,7 +134,11 @@ def _check_whether_section_is_part_of_another_section(location, hits):
                     #print "MATCH ON currency"
                     #print 'MATCH ON FOLLOWS|total'
                     return False
-                    
+                
+                if char_frequency['$'] >= 6:
+                    #print 'MATCH ON DOLLAR COUNT'
+                    return False
+                
                 return True
             
     return False
@@ -126,7 +155,7 @@ def _does_section_contain_verbs(words):
     
     return contains_verbs
     
-def _check_whether_chunk_is_new_section(location, hits):
+def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
     #print "CHECKING:", hits[location]
 
@@ -142,7 +171,7 @@ def _check_whether_chunk_is_new_section(location, hits):
     
     #print "VERB CHECK PASS"
    
-    if _check_whether_section_is_part_of_another_section(location, hits):
+    if _check_whether_section_is_part_of_another_section(location, hits, current_token_location):
         return False
     
     #print "FRAGMENT CHECK PASS"
@@ -176,11 +205,21 @@ def _contains_numbers(s):
 def _get_header_of_chunk(location, hits):
     ''' return the header '''
     if hits[location] in _word_tokenize_cache:
-        return _word_tokenize_cache[hits[location]][:4]
+        words = _word_tokenize_cache[hits[location]]
     else:
         words = nltk.word_tokenize(hits[location])
         _word_tokenize_cache[hits[location]] = words
-        return words[:4]
+        
+    return_list = list()
+    for piece in words:
+        if re.search("[A-Z0-9]+", piece, re.I):
+            return_list.append(piece)
+        
+        if len(return_list) == 4:
+            break
+    
+    return return_list
+    
 
 def _check_whether_header_is_valuable(location, hits):
     
@@ -191,13 +230,15 @@ def _check_whether_header_is_valuable(location, hits):
     # header *has* to contain some special keywords.
     contains_keyword = False    
     for word in header:
-        if re.match("(L[iI][tT][iI][gG][aA][tT][iI][oO][nN]|" + \
+        if re.match("D[eE][bB][tT]|" + \
+        "L[iI][tT][iI][gG][aA][tT][iI][oO][nN]|" + \
         "C[oO][nN][tT][iI][nN][gG][eE][nN][tTcC]|" + \
         "C[oO][mM][mM][iI][tT][mM][eE][nN][tT]|" + \
         "P[rR][oO][cC][eE][eE][dD][iI][nN][gG]|" + \
         "C[oO][nN][tT][iI][gG][eE][nN][cC][iI][eE][sS]|" + \
         "L[eE][gG][aA][lL]|" +
-        "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT])", word):
+        "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]|" + \
+        "O[tT][hH][eE][rR]", word):
             contains_keyword = True
             #print word, header
             break
@@ -207,6 +248,15 @@ def _check_whether_header_is_valuable(location, hits):
 
     # now check for common bigrams that we don't want.
     compressed_header = ''.join(word for word in header)
+    
+    #print header
+    #print compressed_header
+    
+    # debt by itself is not useful.
+    if re.search("D[eE][bB][tT]|O[tT][hH][eE][rR]", compressed_header) \
+    and not re.search("Litigation|Contingenc|Commitment|Proceeding|" + \
+                      "Contigencies|Legal|Subsequent", compressed_header, flags=re.I):
+        return False
     
     for regex in LFRC.get_names_of_headers_we_dont_want():
         if re.search(regex, compressed_header):
@@ -233,7 +283,7 @@ def _check_whether_header_is_valuable(location, hits):
 def _subsequent_event_text_handler(text):
     
     # check to see whether the text mentions litigation:
-    if not re.search('(litigation|legal)', text, re.I):
+    if not re.search('litigation|legal', text, re.I):
         return ''
     
     return text
@@ -272,6 +322,7 @@ def _get_all_viable_hits(text):
         
         record_text = False
         record_header = None
+        current_token_location = None
         recorder = list()
         
         for i in xrange(len(hits)):
@@ -281,11 +332,12 @@ def _get_all_viable_hits(text):
                 continue
             
             if not record_text:
-                if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
+                if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits, current_token_location):
                     record_text = True
                     record_header, recorder = _set_up_recorder(i, hits)
+                    current_token_location = i - 1
             
-            elif _check_if_valid_ending(i, hits):
+            elif _check_if_valid_ending(i, hits, current_token_location):
                     record_text = False
                     record = ''.join(blob for blob in recorder)
                         
@@ -305,6 +357,7 @@ def _get_all_viable_hits(text):
                     if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
                         record_header, recorder = _set_up_recorder(i, hits)    
+                        current_token_location = i - 1
             else:
                 recorder.append(hits[i])
         

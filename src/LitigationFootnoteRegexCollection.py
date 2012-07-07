@@ -7,7 +7,8 @@ Created on Jun 12, 2012
 import re
 
 def get_document_parsing_regexes():
-    return _sections_start_with_word_note_and_are_numbered(), \
+    return _sections_start_with_word_note_and_are_numbered_case_sensitive(), \
+        _sections_start_with_word_note_and_are_numbered(), \
         _sections_start_with_word_note_and_are_numbered_more_freeform(), \
         _note_sections_in_parentheses(), \
         _sections_start_with_word_note_and_are_lettered(), \
@@ -25,7 +26,7 @@ def get_document_parsing_regexes():
 
 def get_cutting_regexes():
     return [re.compile("ITEM\s*?(4|9)\s*(?:A)\s*(?!,).*", re.I | re.M | re.S),    \
-    re.compile("P[uU][bB][lL][iI][cC]\s*A[cC]{2}[oO][uU][nN][tT][iI][nN][gG]\s*F[iI][rR][mM].*", re.M | re.S), \
+    re.compile("P[uU][bB][lL][iI][cC]\s*A[cC]{2}[oO][uU][nN][tT][iI][nN][gG]\s*F[iI][rR][mM](?!\s*\.).*", re.M | re.S), \
     re.compile("QUARTERLY\s*(\w+\s*){0,5}\s*\(Unaudited.*", re.I | re.M | re.S),
     re.compile("SCHEDULE\s*II.*", re.I | re.M | re.S),   \
     re.compile("(^\s*exhibit[^s].*|^\s*EXHIBIT.*)", re.M | re.S), \
@@ -38,8 +39,9 @@ def get_cutting_regexes():
     re.compile(" XBRL .*", re.I | re.M | re.S), \
     re.compile("REPORT\s*ON\s*INTERNAL\s*CONTROL.*", re.I | re.M | re.S), \
     re.compile("\.gif.*", re.I | re.M | re.S), \
-    re.compile("\.htm.*", re.I | re.M | re.S) ]
-
+    re.compile("\.htm.*", re.I | re.M | re.S), \
+    re.compile("\.txt.*", re.I | re.M | re.S)]
+    
 def get_programming_fragment_check():
     return re.compile("XML|/td|^div$|^valign$|falsefalse|truefalse|falsetrue" + \
                  "|link:[0-9]+px|font-family|link:|background-color|utf-8;" + \
@@ -58,10 +60,14 @@ def get_names_of_headers_we_dont_want():
     re.compile("Legal\s*Fees",  re.I | re.M | re.S), \
     re.compile("Reimbursement",  re.I | re.M | re.S), \
     re.compile("Assistance.*Litigation",  re.I | re.M | re.S), \
-    re.compile("Contingent.*Interest",  re.I | re.M | re.S),  ]
+    re.compile("Contingent.*Interest",  re.I | re.M | re.S),  \
+    re.compile("primarily", re.I | re.M | re.S) ]
+
+def _sections_start_with_word_note_and_are_numbered_case_sensitive():
+    return re.compile("((?<!\()NOTE\s*[0-9]+(?![0-9,AB]))(?!\s*[`'\"])(?:\s*:)?", re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered():
-    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,AB]))(?!\s*[`'\"])", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,AB]))(?!\s*[`'\"])(?:\s*:)?", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered_more_freeform():
     return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,]))(?!\s*[`'\"])", re.I | re.M | re.S)
