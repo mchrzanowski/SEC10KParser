@@ -13,6 +13,8 @@ import multiprocessing
 import time
 import Utilities
 
+import gc
+
 def run():
     start = time.time()
     run_regression_test_suite()
@@ -65,8 +67,8 @@ def _walk_corpus_file_directory_and_call_unit_test(unit_test, corpus_walker):
         different than what is in the corpus. 
     '''
     
-    pool = multiprocessing.Pool()
-        
+    pool = multiprocessing.Pool(maxtasksperchild=20)    # 20 set arbitrarily. key point is that processes *must* exit
+                                                        # eventually as they end up accumulating so much memory that Linux kills them eventually!
     for CIK, filing_year, file_path in corpus_walker():
         pool.apply_async(unit_test, args=(CIK, filing_year, file_path))   
     
