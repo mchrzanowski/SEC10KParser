@@ -12,13 +12,32 @@ import re
 import Utilities
 
 _word_tokenize_cache = dict()
-
+        
 def _check_if_valid_ending(location, hits, current_header_location):
-    if _check_whether_section_is_part_of_another_section(location, hits, current_header_location) \
+    
+    # the token is white space. end it when whitelisted headers are encountered.
+    if not re.search("[0-9A-Za-z]", hits[current_header_location]):
+        if _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+            return True
+        else:
+            return False
+        
+    elif _check_whether_section_is_part_of_another_section(location, hits, current_header_location) \
     or _check_whether_header_is_valuable(location, hits):
         return False
+    
     else:
         return True
+    
+def _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+    
+    compressed_header = ''.join(_get_header_of_chunk(location, hits))
+    
+    for legitimate_header in LFRC.get_legitimate_headers():
+        if re.search(legitimate_header, compressed_header):
+            return True
+        
+    return False
     
     
 def _check_equality_of_two_note_tokens(first_token, second_token):
@@ -58,11 +77,25 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     if re.match("Note(?!S)", punctuated_tokens[-2], re.I) and re.search("Note(?!S)", hits[location - 1], re.I):
         return False
     
-    # make sure this section's Notes header matches the current header.
+    # make sure this section's Notes header case matches the current header's case.
     if current_header_location is not None and re.search("Note(?!S)", hits[current_header_location], re.I) \
     and re.search("Note(?!S)",  hits[location - 1], re.I) \
     and not _check_equality_of_two_note_tokens(hits[current_header_location], hits[location - 1]):
         return True
+    
+    # if the current header's token has a number in it, then we expect the ending token
+    # to be sort of close to that number. so, if the number is greater than the current header token,
+    # we're still in the same section. don't check whether the number is smaller than the current header token
+    # as in the case of the last footnote, the ending that got picked up might be some agreement in the 
+    # last sections of the 10-K, and those typically start from 1 again.
+    if current_header_location is not None and re.search("[0-9]+", hits[current_header_location]) \
+    and re.search("[0-9]+", hits[location - 1]):
+        current_header_number = re.search("(?P<number>[0-9]+)", hits[current_header_location])
+        potential_header_number = re.search("(?P<number>[0-9]+)", hits[location - 1])
+        
+        if int(potential_header_number.group('number')) > 4 + int(current_header_number.group('number')):
+            #print "match on number"
+            return True
     
     # also, no months!
     if re.match("(Jan((uary)|[^A-Za-z])|Feb((ruary)|[^A-Za-z])|mar((ch)|[^A-Za-z])|apr((il)|[^A-Za-z])|may)", punctuated_tokens[-1], re.I):
@@ -139,6 +172,16 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
                     #print 'MATCH ON DOLLAR COUNT'
                     return False
                 
+                number_count = 0
+                for word in punctuated_tokens[end_of_last_sentence_index + 1:]:
+                    if Utilities.contains_numbers(word):
+                        number_count += 1
+                        
+                if re.search("total|follows|balance", compressed_fragment, re.I | re.M | re.S) \
+                and number_count >= 6:
+                    #print "match on number count"
+                    return False
+                
                 return True
             
     return False
@@ -190,17 +233,12 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
     # does it contain the phrase "this Amendment"? If so, it's probably not what we want.
     if re.search("this\s*Amendment", hits[location][:len(hits[location]) // 4]):
-        #print "FAIL ON Amendment check"
         return False
+
+    #print "Amendment check pass"
+
     
     return True
-
-def _contains_numbers(s):
-    
-    for char in s:
-        if char.isdigit():
-            return True
-    return False
 
 def _get_header_of_chunk(location, hits):
     ''' return the header '''
@@ -212,7 +250,7 @@ def _get_header_of_chunk(location, hits):
         
     return_list = list()
     for piece in words:
-        if re.search("[A-Z0-9]+", piece, re.I):
+        if re.search("[A-Z0-9a-z]", piece):
             return_list.append(piece)
         
         if len(return_list) == 4:
@@ -268,15 +306,16 @@ def _check_whether_header_is_valuable(location, hits):
         return False
     
     # first words are never numbers.
-    if _contains_numbers(header[0]):
+    if Utilities.contains_numbers(header[0]) \
+    or  (len(header) >= 2 and Utilities.contains_numbers(header[1])):
+        #print "MATCH ON NUMBER"
         return False
     
-    if len(header) >= 2 and _contains_numbers(header[1]):
-        return False
     
-#    if re.search('`', compressed_header) \
-#    or re.search('"', compressed_header):
-#        return False
+    for blob in header:
+        if re.match("[0-9]{3}", blob):
+            #print "MATCH ON TRIPLE NUMBER"
+            return False
     
     return True
 
@@ -338,9 +377,7 @@ def _get_all_viable_hits(text):
                     current_token_location = i - 1
             
             elif _check_if_valid_ending(i, hits, current_token_location):
-                    record_text = False
                     record = ''.join(blob for blob in recorder)
-                        
                     record = _cut_text_if_needed(record)
                     
                     if re.search("SUBSEQUENT", record_header, re.I):
@@ -350,9 +387,11 @@ def _get_all_viable_hits(text):
                         results[record_header] = list()
                         
                     results[record_header].append(record + '\n\n')
-                    
+
+                    record_text = False
                     recorder = list()
                     record_header = None
+                    current_token_location = None
                     
                     if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
@@ -363,7 +402,7 @@ def _get_all_viable_hits(text):
         
         if len(recorder) > 0 and record_header is not None:
             
-            record = ''.join(blob for blob in recorder)
+            record = ''.join(recorder)
                         
             record = _cut_text_if_needed(record)
             
@@ -379,7 +418,7 @@ def _get_all_viable_hits(text):
             # one type of regex is used. only one. notes don't take on different formats within the 10-K.
             break           
 
-    return ''.join(''.join(blob for blob in results[key]) + '\n\n' for key in results)
+    return ''.join(''.join(results[key]) + '\n\n' for key in results)
 
 def _are_results_from_this_regex_split_acceptable(results):
     

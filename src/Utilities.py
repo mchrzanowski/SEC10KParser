@@ -11,8 +11,14 @@ def get_alpha_numeric_count(text):
         if char.isalpha() or char.isdigit():
             count += 1
     
-    return count  
+    return count 
 
+def contains_numbers(s):
+    
+    for char in s:
+        if char.isdigit():
+            return True
+    return False
  
 def format_CIK(data):
     data = str(data)

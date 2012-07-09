@@ -12,9 +12,9 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0000004285')
+    CIK = Utilities.format_CIK('0000024491')
     
-    for year in xrange(2004, 2012 + 1):
+    for year in xrange(2005, 2005 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, year)
         
@@ -49,6 +49,8 @@ def main():
         except Exception as exception:
             print "Exception: ", exception
             traceback.print_exc()
+                
+                
 
 if __name__ == '__main__':
     start = time.time()
