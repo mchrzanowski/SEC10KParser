@@ -288,7 +288,7 @@ def _check_whether_header_is_valuable(location, hits):
     #print header
     #print compressed_header
     
-    # debt by itself is not useful.
+    # debt or other by themselves are not useful.
     if re.search("D[eE][bB][tT]|O[tT][hH][eE][rR]", compressed_header) \
     and not re.search("Litigation|Contingenc|Commitment|Proceeding|" + \
                       "Contigencies|Legal|Subsequent", compressed_header, re.I):
