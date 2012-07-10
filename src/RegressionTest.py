@@ -6,17 +6,17 @@ Created on Jun 7, 2012
 
 from __future__ import division
 
+import argparse
 import Constants
 import CorpusAccess
-import getopt
 import Litigation10KParsing
 import multiprocessing
 import time
 import Utilities
 
-def run():
+def run(legal_footnotes_only, legal_proceeding_only):
     start = time.time()    
-    run_regression_test_suite()
+    run_regression_test_suite(legal_footnotes_only, legal_proceeding_only)
     end = time.time()
     print "Regression Runtime:%r seconds." % (end - start) 
 
@@ -84,10 +84,12 @@ def _walk_corpus_file_directory_and_call_unit_test(unit_test, corpus_walker):
     pool.close()
     pool.join()
 
-def run_regression_test_suite():
+def run_regression_test_suite(legal_footnotes_only, legal_proceeding_only):
     CorpusAccess.wipe_existing_failed_unit_tests()
-    _run_legal_proceeding_test_suite()
-    #_run_legal_footnotes_test_suite()
+    if not legal_footnotes_only:
+        _run_legal_proceeding_test_suite()
+    if not legal_proceeding_only:
+        _run_legal_footnotes_test_suite()
     
 def _run_legal_footnotes_test_suite():
     _walk_corpus_file_directory_and_call_unit_test(_litigation_footnote_unit_test, CorpusAccess.access_every_file_in_legal_footnotes_corpus)
@@ -97,4 +99,11 @@ def _run_legal_proceeding_test_suite():
     
                     
 if __name__ == '__main__':
-    run()
+    
+    parser = argparse.ArgumentParser(description='A script that compares the output from the parsing engine against what is expected.')
+    parser.add_argument('-lpo', action='store_true', help="run for the legal proceeding corpus only")
+    parser.add_argument('-lfo', action='store_true', help="run for the legal footnotes corpus only")
+    
+    args = vars(parser.parse_args())
+    
+    run(legal_footnotes_only=args['lfo'], legal_proceeding_only=args['lpo'])
