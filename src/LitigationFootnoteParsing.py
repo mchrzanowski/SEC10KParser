@@ -274,8 +274,7 @@ def _check_whether_header_is_valuable(location, hits):
         "C[oO][nN][tT][iI][gG][eE][nN][cC][iI][eE][sS]|" + \
         "L[eE][gG][aA][lL]|" +
         "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]|" + \
-        "O[tT][hH][eE][rR]|" + \
-        "D[iI][sS][cC][oO][nN][tT][iI][nN][uU][eE][dD]", word):
+        "O[tT][hH][eE][rR]", word):
             contains_keyword = True
             #print word, header
             break
@@ -319,7 +318,7 @@ def _check_whether_header_is_valuable(location, hits):
     return True
 
 def _does_section_mention_litigation(text):
-    return re.search('litigation|legal', text, re.I)
+    return re.search('litigation|legal|jury|verdict', text, re.I)
 
 def _cut_text_if_needed(text):
     
@@ -345,7 +344,7 @@ def _transform_list_of_hits_into_result(recorder, record_header):
     record = ''.join(recorder)
     record = _cut_text_if_needed(record)
     
-    if re.search("SUBSEQUENT|Discontinue", record_header, re.I):
+    if re.search("SUBSEQUENT", record_header, re.I):
         if not _does_section_mention_litigation(record):
             record = ''
     
