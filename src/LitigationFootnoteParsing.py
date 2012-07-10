@@ -274,8 +274,8 @@ def _check_whether_header_is_valuable(location, hits):
         "C[oO][nN][tT][iI][gG][eE][nN][cC][iI][eE][sS]|" + \
         "L[eE][gG][aA][lL]|" +
         "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]|" + \
-        "O[tT][hH][eE][rR]", word):
-        #"D[iI][sS][cC][oO][nN][tT][iI][nN][uU][eE][dD]", word):
+        "O[tT][hH][eE][rR]|" + \
+        "D[iI][sS][cC][oO][nN][tT][iI][nN][uU][eE][dD]", word):
             contains_keyword = True
             #print word, header
             break
@@ -320,14 +320,6 @@ def _check_whether_header_is_valuable(location, hits):
 
 def _does_section_mention_litigation(text):
     return re.search('litigation|legal', text, re.I)
-
-def _subsequent_event_text_handler(text):
-    
-    # check to see whether the text mentions litigation:
-    if not _does_section_mention_litigation(text):
-        return ''
-    
-    return text
 
 def _cut_text_if_needed(text):
     
