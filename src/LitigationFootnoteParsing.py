@@ -21,7 +21,7 @@ def _check_if_valid_ending(location, hits, current_header_location):
             return True
         else:
             return False
-        
+    
     elif _check_whether_section_is_part_of_another_section(location, hits, current_header_location) \
     or _check_whether_header_is_valuable(location, hits):
         return False
@@ -38,7 +38,6 @@ def _check_whether_current_section_header_is_whitelisted_as_new_section(location
             return True
         
     return False
-    
     
 def _check_equality_of_two_note_tokens(first_token, second_token):
     
@@ -136,7 +135,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
             if re.search("Units?\s*[0-9]*$", compressed_fragment) \
             or re.search("Region\s*[0-9]*$", compressed_fragment) \
             or re.search("USC\s*[0-9]*$", compressed_fragment):
-                #print "MATCH on end words with numbers attached."
+            #    #print "MATCH on end words with numbers attached."
                 return True
             
             char_frequency = Utilities.character_counter(compressed_fragment, '(', ')', '$')
@@ -236,7 +235,6 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         return False
 
     #print "Amendment check pass"
-
     
     return True
 
@@ -277,10 +275,11 @@ def _check_whether_header_is_valuable(location, hits):
         "L[eE][gG][aA][lL]|" +
         "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]|" + \
         "O[tT][hH][eE][rR]", word):
+        #"D[iI][sS][cC][oO][nN][tT][iI][nN][uU][eE][dD]", word):
             contains_keyword = True
             #print word, header
             break
-    
+        
     if not contains_keyword:
         return False
 
@@ -293,7 +292,7 @@ def _check_whether_header_is_valuable(location, hits):
     # debt by itself is not useful.
     if re.search("D[eE][bB][tT]|O[tT][hH][eE][rR]", compressed_header) \
     and not re.search("Litigation|Contingenc|Commitment|Proceeding|" + \
-                      "Contigencies|Legal|Subsequent", compressed_header, flags=re.I):
+                      "Contigencies|Legal|Subsequent", compressed_header, re.I):
         return False
     
     for regex in LFRC.get_names_of_headers_we_dont_want():
@@ -311,7 +310,7 @@ def _check_whether_header_is_valuable(location, hits):
         #print "MATCH ON NUMBER"
         return False
     
-    
+    # three-digit numbers are also never present.
     for blob in header:
         if re.match("[0-9]{3}", blob):
             #print "MATCH ON TRIPLE NUMBER"
@@ -319,16 +318,18 @@ def _check_whether_header_is_valuable(location, hits):
     
     return True
 
+def _does_section_mention_litigation(text):
+    return re.search('litigation|legal', text, re.I)
+
 def _subsequent_event_text_handler(text):
     
     # check to see whether the text mentions litigation:
-    if not re.search('litigation|legal', text, re.I):
+    if not _does_section_mention_litigation(text):
         return ''
     
     return text
 
 def _cut_text_if_needed(text):
-    
     
     # text might be too long because this is the last
     # legal footnote. so cut it along markers that would
@@ -339,18 +340,27 @@ def _cut_text_if_needed(text):
             text = re.sub(regex, "", text)
         
     return text
+
+def _set_up_recorder(location, hits):
+    recorder = list()
+    record_header = ''.join(_get_header_of_chunk(location, hits))
+    #print "CREATED:", record_header
+    recorder.append(hits[location - 1])   # assuming this is the token.
+    recorder.append(hits[location])
+    return record_header, recorder, location - 1
+
+def _transform_list_of_hits_into_result(recorder, record_header):
+    record = ''.join(recorder)
+    record = _cut_text_if_needed(record)
     
+    if re.search("SUBSEQUENT|Discontinue", record_header, re.I):
+        if not _does_section_mention_litigation(record):
+            record = ''
+    
+    return record
 
 def _get_all_viable_hits(text):
     
-    def _set_up_recorder(location, hits):
-        recorder = list()
-        record_header = ''.join(blob for blob in _get_header_of_chunk(i, hits))
-        #print "CREATED:", record_header
-        recorder.append(hits[i - 1])   # assuming this is the token.
-        recorder.append(hits[i])
-        return record_header, recorder
-        
     results = dict()
     
     for regex in LFRC.get_document_parsing_regexes():
@@ -373,41 +383,31 @@ def _get_all_viable_hits(text):
             if not record_text:
                 if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits, current_token_location):
                     record_text = True
-                    record_header, recorder = _set_up_recorder(i, hits)
-                    current_token_location = i - 1
+                    record_header, recorder, current_token_location = _set_up_recorder(i, hits)
             
             elif _check_if_valid_ending(i, hits, current_token_location):
-                    record = ''.join(blob for blob in recorder)
-                    record = _cut_text_if_needed(record)
                     
-                    if re.search("SUBSEQUENT", record_header, re.I):
-                        record = _subsequent_event_text_handler(record)
+                    record = _transform_list_of_hits_into_result(recorder, record_header)
                     
                     if record_header not in results:
                         results[record_header] = list()
-                        
+                    
                     results[record_header].append(record + '\n\n')
 
                     record_text = False
-                    recorder = list()
                     record_header = None
                     current_token_location = None
+                    recorder = list()
                     
                     if _check_whether_header_is_valuable(i, hits) and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
-                        record_header, recorder = _set_up_recorder(i, hits)    
-                        current_token_location = i - 1
+                        record_header, recorder, current_token_location = _set_up_recorder(i, hits)    
             else:
                 recorder.append(hits[i])
         
         if len(recorder) > 0 and record_header is not None:
             
-            record = ''.join(recorder)
-                        
-            record = _cut_text_if_needed(record)
-            
-            if re.search("SUBSEQUENT", record_header, re.I):
-                record = _subsequent_event_text_handler(record)
+            record = _transform_list_of_hits_into_result(recorder, record_header)
             
             if record_header not in results:
                 results[record_header] = list()
@@ -421,7 +421,6 @@ def _get_all_viable_hits(text):
     return ''.join(''.join(results[key]) + '\n\n' for key in results)
 
 def _are_results_from_this_regex_split_acceptable(results):
-    
     return len(results) > 0
 
 def _edit_text_to_remove_periods(text):
@@ -430,7 +429,8 @@ def _edit_text_to_remove_periods(text):
     # periods right after common demarcations
     text = re.sub("(?P<section>(Note|Item)\s*[0-9]+)\s*\.", "\g<section> ", text, flags = re.I | re.M | re.S)
     
-    # decimal points
+    # deal with decimal numbers. do this one several time as sometimes, the whitespace is so bad
+    # that the numbers run into each other. each pass removes a few of the decimal points.
     for _ in xrange(5):
         text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
     

@@ -5,11 +5,48 @@ Created on Jun 8, 2012
 '''
 
 import Constants
+import lockfile
 import os.path
 import re
 import shutil
 import Utilities
 
+def get_company_name_from_corpus(CIK):
+    
+    CIK = Utilities.format_CIK(CIK)
+    if os.path.exists(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):
+        with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'r') as f:
+            for line in f:
+                data = re.split(Constants.COMPANY_NAME_AND_CIK_MAPPING_FILE_DELIMITER, line)
+                if len(data) != 2:
+                    continue
+                if data[0] == CIK:
+                    return data[1]
+    return None
+
+def write_company_name_and_cik_mapping_to_corpus(CIK, company_name):
+    
+    company_name = company_name.strip("\n\r\t\s")
+    CIK = Utilities.format_CIK(CIK)
+        
+    if CIK is None or company_name is None:
+        return None
+    
+    mapping = {CIK : company_name}
+
+    if os.path.exists(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):        
+        with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'r') as f:
+            for line in f:
+                data = re.split(Constants.COMPANY_NAME_AND_CIK_MAPPING_FILE_DELIMITER, line)
+                if len(data) != 2:
+                    continue
+                if data[0] != CIK:
+                    mapping[data[0]] = data[1]
+    
+    with lockfile.FileLock(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):
+        with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'w') as f:
+            for key in mapping:
+                f.write(key + Constants.COMPANY_NAME_AND_CIK_MAPPING_FILE_DELIMITER + mapping[key] + '\n')
 
 def _walk_directory(corpus_root):
     get_filing_year_from_corpus_file = re.compile("\.txt", re.I)

@@ -8,13 +8,14 @@ from __future__ import division
 
 import Constants
 import CorpusAccess
+import getopt
 import Litigation10KParsing
 import multiprocessing
 import time
 import Utilities
 
 def run():
-    start = time.time()
+    start = time.time()    
     run_regression_test_suite()
     end = time.time()
     print "Regression Runtime:%r seconds." % (end - start) 
@@ -40,21 +41,31 @@ def _character_count_test(CIK, filing_year, new_data, corpus_file):
 
 def _litigation_footnote_unit_test(CIK, filing_year, corpus_file):
     processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
-    result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data, get_litigation_footnotes_only=True)
+    company_name = CorpusAccess.get_company_name_from_corpus(CIK)
+
+    result = Litigation10KParsing.parse(CIK, filing_year, company_name, processed_website_data, get_litigation_footnotes_only=True)
     
     if processed_website_data is None:
         CorpusAccess.write_processed_url_data_to_file(data=result.processed_text, CIK=result.CIK, filing_year=result.filing_year)
+
+    if company_name is None:
+        CorpusAccess.write_company_name_and_cik_mapping_to_corpus(result.CIK, result.company_name)    
     
     _character_count_test(CIK, filing_year, result.legal_note_mentions, corpus_file)
 
 def _legal_proceeding_unit_test(CIK, filing_year, corpus_file):
                 
     processed_website_data = CorpusAccess.get_processed_website_data_from_corpus(CIK, filing_year)
-    result = Litigation10KParsing.parse(CIK, filing_year, processed_website_data, get_legal_proceeding_only=True)
+    company_name = CorpusAccess.get_company_name_from_corpus(CIK)
+    
+    result = Litigation10KParsing.parse(CIK, filing_year, company_name, processed_website_data, get_legal_proceeding_only=True)
     
     if processed_website_data is None:
         CorpusAccess.write_processed_url_data_to_file(data=result.processed_text, CIK=result.CIK, filing_year=result.filing_year)
     
+    if company_name is None:
+        CorpusAccess.write_company_name_and_cik_mapping_to_corpus(result.CIK, result.company_name)    
+
     _character_count_test(CIK, filing_year, result.legal_proceeding_mention, corpus_file)
 
 def _walk_corpus_file_directory_and_call_unit_test(unit_test, corpus_walker):    
