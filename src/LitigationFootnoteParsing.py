@@ -57,6 +57,11 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     
     #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
     
+    # if we are recording a section of the 10-K, and we have stumbled upon a section
+    # that does not have lettering, then continue onwards.
+    if current_header_location is not None and not re.search("[A-Za-z]", hits[location]):
+        return True
+    
     if hits[location] in _another_section_cache:
         punctuated_tokens = _another_section_cache[hits[location]]
     else:
