@@ -233,9 +233,15 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     # does it contain the phrase "this Amendment"? If so, it's probably not what we want.
     if re.search("this\s*Amendment", hits[location][:len(hits[location]) // 4]):
         return False
-
+    
     #print "Amendment check pass"
     
+    # ditto for "this Agreement"
+    if re.search("this\s*Agreement", hits[location][:500]):
+        return False
+    
+    #print "Agreement check pass"
+
     return True
 
 def _get_header_of_chunk(location, hits):
@@ -305,7 +311,7 @@ def _check_whether_header_is_valuable(location, hits):
     
     # first words are never numbers.
     if Utilities.contains_numbers(header[0]) \
-    or  (len(header) >= 2 and Utilities.contains_numbers(header[1])):
+    or (len(header) >= 2 and Utilities.contains_numbers(header[1])):
         #print "MATCH ON NUMBER"
         return False
     
@@ -346,7 +352,7 @@ def _transform_list_of_hits_into_result(recorder, record_header):
     
     if re.search("SUBSEQUENT", record_header, re.I):
         if not _does_section_mention_litigation(record):
-            record = ''
+            record = None
     
     return record
 
@@ -367,6 +373,7 @@ def _get_all_viable_hits(text):
         
         for i in xrange(len(hits)):
             
+            # odd-numbered indices have tokens inside them.
             if i & 1 == 1:
                 recorder.append(hits[i])
                 continue
@@ -380,10 +387,10 @@ def _get_all_viable_hits(text):
                     
                     record = _transform_list_of_hits_into_result(recorder, record_header)
                     
-                    if record_header not in results:
-                        results[record_header] = list()
-                    
-                    results[record_header].append(record + '\n\n')
+                    if record is not None:
+                        if record_header not in results:
+                            results[record_header] = list()
+                        results[record_header].append(record + '\n\n')
 
                     record_text = False
                     record_header = None
@@ -400,10 +407,10 @@ def _get_all_viable_hits(text):
             
             record = _transform_list_of_hits_into_result(recorder, record_header)
             
-            if record_header not in results:
-                results[record_header] = list()
-
-            results[record_header].append(record + '\n\n')
+            if record is not None:
+                if record_header not in results:
+                    results[record_header] = list()
+                results[record_header].append(record + '\n\n')
                 
         if _are_results_from_this_regex_split_acceptable(results):
             # one type of regex is used. only one. notes don't take on different formats within the 10-K.
