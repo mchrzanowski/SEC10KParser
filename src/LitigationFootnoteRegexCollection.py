@@ -47,7 +47,8 @@ def get_legitimate_headers():
         re.compile("Commitment", re.I), \
         re.compile("The\s*Board\s*of\s*Directors\s*and\s*Stockholders", re.I | re.M), \
         re.compile("Forward.*looking\s*Statements", re.I | re.M | re.S), \
-        re.compile("Shareholders?\s*EQUITY", re.I | re.M), \
+        re.compile("Shareholder.*EQUITY", re.I | re.M), \
+        re.compile("Stockholder.*EQUITY", re.I | re.M), \
         re.compile("Contingencies", re.I), \
         re.compile("Long.*Term\s*Obligation", re.I | re.M), \
         re.compile("Notes?\s*Payable", re.I | re.M), \
@@ -73,8 +74,13 @@ def get_legitimate_headers():
         re.compile("Liabilit", re.I), \
         re.compile("Pension", re.I), \
         re.compile("Fair\s*Value", re.I | re.M), \
-        re.compile("Guarant", re.I) ]    
-
+        re.compile("Guarant", re.I), \
+        re.compile("Common\s*Share", re.I), \
+        re.compile("Stock\s*Option", re.I), \
+        re.compile("Parent\s*Company\s*Only", re.I), \
+        re.compile("Related\s*Party\s*Transaction", re.I), \
+        re.compile("Benefit\s*Plans", re.I) ]
+    
 def get_programming_fragment_check():
     return re.compile("XML|/td|\sdiv\s|\svalign\s|falsefalse|truefalse|falsetrue" + \
                  "|link:[0-9]+px|font-family|link:|background-color|utf-8;" + \

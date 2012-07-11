@@ -170,11 +170,19 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
                 and re.search("total|follows", compressed_fragment, re.I | re.M | re.S):
                     #print "MATCH ON currency"
                     #print 'MATCH ON FOLLOWS|total'
-                    return False
+                    if current_header_location is None \
+                    or _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+                        return False
+                    else:
+                        return True
                 
                 if char_frequency['$'] >= 6:
                     #print 'MATCH ON DOLLAR COUNT'
-                    return False
+                    if current_header_location is None \
+                    or _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+                        return False
+                    else:
+                        return True
                 
                 number_count = 0
                 for word in punctuated_tokens[end_of_last_sentence_index + 1:]:
@@ -184,7 +192,11 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
                 if re.search("total|follows|balance", compressed_fragment, re.I | re.M | re.S) \
                 and number_count >= 6:
                     #print "match on number count"
-                    return False
+                    if current_header_location is None \
+                    or _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+                        return False
+                    else:
+                        return True
                 
                 return True
             

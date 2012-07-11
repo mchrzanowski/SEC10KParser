@@ -43,10 +43,10 @@ def write_company_name_and_cik_mapping_to_corpus(CIK, company_name):
                 if data[0] != CIK:
                     mapping[data[0]] = data[1]
     
-    with lockfile.FileLock(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):
-        with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'w') as f:
-            for key in mapping:
-                f.write(key + Constants.COMPANY_NAME_AND_CIK_MAPPING_FILE_DELIMITER + mapping[key] + '\n')
+    with lockfile.FileLock(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE), \
+    open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'w') as f:
+        for key in mapping:
+            f.write(key + Constants.COMPANY_NAME_AND_CIK_MAPPING_FILE_DELIMITER + mapping[key] + '\n')
 
 def _walk_directory(corpus_root):
     get_filing_year_from_corpus_file = re.compile("\.txt", re.I)
