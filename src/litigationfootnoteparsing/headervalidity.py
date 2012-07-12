@@ -4,7 +4,7 @@ Created on Jul 11, 2012
 @author: mchrzanowski
 '''
 
-from litigationfootnoteparsing import headerpatternrepository, wordtokencreation
+import litigationfootnoteparsing as lfp
 import nltk
 import re
 import Utilities
@@ -12,7 +12,7 @@ import Utilities
 def get_header_of_chunk(location, hits):
     ''' return the header. 
     defined as being the first 4 alphanumeric blobs of a section '''
-    words = wordtokencreation.word_tokenize_hit(location, hits)
+    words = lfp.wordtokencreation.word_tokenize_hit(location, hits)
     
     return_list = list()
     for piece in words:
@@ -33,7 +33,7 @@ def check_whether_header_is_valuable(location, hits):
     # header *has* to contain some special keywords.
     contains_keyword = False    
     for word in header:
-        if re.match(headerpatternrepository.get_pattern_of_headers_we_want(), word):
+        if re.match(lfp.headerpatternrepository.get_pattern_of_headers_we_want(), word):
             contains_keyword = True
             #print word, header
             break
@@ -53,7 +53,7 @@ def check_whether_header_is_valuable(location, hits):
                       "Contigencies|Legal|Subsequent", compressed_header, re.I):
         return False
     
-    for regex in headerpatternrepository.get_patterns_of_headers_we_dont_want():
+    for regex in lfp.headerpatternrepository.get_patterns_of_headers_we_dont_want():
         if re.search(regex, compressed_header):
             return False
     

@@ -4,10 +4,7 @@ Created on Jun 13, 2012
 @author: mchrzanowski
 '''
 
-from litigationfootnoteparsing import documenttokens, \
-headerpatternrepository, headervalidity, preprocessing, \
-tokenvalidity, wordtokencreation
-
+import litigationfootnoteparsing as lfp
 import nltk
 import re
 import Utilities
@@ -23,7 +20,7 @@ def _check_if_valid_ending(location, hits, current_header_location):
             return False
     
     elif _check_whether_section_is_part_of_another_section(location, hits, current_header_location) \
-    or headervalidity.check_whether_header_is_valuable(location, hits):
+    or lfp.headervalidity.check_whether_header_is_valuable(location, hits):
         return False
     
     else:
@@ -31,9 +28,9 @@ def _check_if_valid_ending(location, hits, current_header_location):
     
 def _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
     
-    compressed_header = ''.join(headervalidity.get_header_of_chunk(location, hits))
+    compressed_header = ''.join(lfp.headervalidity.get_header_of_chunk(location, hits))
     
-    for legitimate_header in headerpatternrepository.get_legitimate_headers():
+    for legitimate_header in lfp.headerpatternrepository.get_legitimate_headers():
         if re.search(legitimate_header, compressed_header):
             return True
         
@@ -50,34 +47,34 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     
     # check to make sure the last few words don't contain common words 
     # that have numbers after them.
-    if tokenvalidity.does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
+    if lfp.tokenvalidity.does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
         return True
     
     # did the last section end with note *something*, and did the current section start with
     # note? if so, we can move on; this is a new sentence.
-    if tokenvalidity.check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
+    if lfp.tokenvalidity.check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
         #print 'match on note ending'
         return False
     
-    if tokenvalidity.check_cases_of_previous_section_token_and_current_token(location, hits, current_header_location):
+    if lfp.tokenvalidity.check_cases_of_previous_section_token_and_current_token(location, hits, current_header_location):
         #print 'MATCH ON note casing'
         return True
     
-    if tokenvalidity.check_whether_token_numbers_are_near_each_other(location, hits, current_header_location):
+    if lfp.tokenvalidity.check_whether_token_numbers_are_near_each_other(location, hits, current_header_location):
         #print "MATCH ON numerical proximity'
         return True
     
     # everything is contained in parentheses? probably OK.
-    if tokenvalidity.does_previous_section_end_with_a_complete_parenthetical_block(location, hits):
+    if lfp.tokenvalidity.does_previous_section_end_with_a_complete_parenthetical_block(location, hits):
         return False
     
-    if tokenvalidity.are_there_more_left_parentheses_than_right_parentheses(location, hits):
+    if lfp.tokenvalidity.are_there_more_left_parentheses_than_right_parentheses(location, hits):
         return True
    
     # a true value means that yes, we were in a table. 
     # now, ask: are we recording a segment right now? if so, continue recording
     # UNLESS this next section is itself its own section.
-    if tokenvalidity.was_cut_within_a_table(location, hits):
+    if lfp.tokenvalidity.was_cut_within_a_table(location, hits):
         if current_header_location is None \
         or _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
             return False
@@ -88,7 +85,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     # that not we're in a standalone section. do this check *AFTER* the table check
     # as sometimes these words can be embedded in a table (in which case additional logic is required
     # to determine which boolean to output).
-    if tokenvalidity.does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
+    if lfp.tokenvalidity.does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
        return True
    
     return False
@@ -108,7 +105,7 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
     #print "CHECKING:", hits[location]
 
-    words_in_hit = wordtokencreation.word_tokenize_hit(location, hits)
+    words_in_hit = lfp.wordtokencreation.word_tokenize_hit(location, hits)
     
     # does it contain verbs? detritus usually doesn't.    
     if not _does_section_contain_verbs(words_in_hit):
@@ -128,7 +125,7 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
     #print "FIRST:" + top_section + "DONE"
     
-    if re.search(tokenvalidity.get_programming_fragment_check(), top_section):
+    if re.search(lfp.tokenvalidity.get_programming_fragment_check(), top_section):
         return False
     
     #print "JUNK TAG CHECK PASS"
@@ -156,7 +153,7 @@ def _cut_text_if_needed(text):
     # legal footnote. so cut it along markers that would
     # not be OK to cut on normally.
     
-    for regex in documenttokens.get_cutting_regexes():
+    for regex in lfp.documenttokens.get_cutting_regexes():
         if re.search(regex, text):
             text = re.sub(regex, "", text)
         
@@ -164,7 +161,7 @@ def _cut_text_if_needed(text):
 
 def _set_up_recorder(location, hits):
     recorder = list()
-    record_header = ''.join(headervalidity.get_header_of_chunk(location, hits))
+    record_header = ''.join(lfp.headervalidity.get_header_of_chunk(location, hits))
     #print "CREATED:", record_header
     recorder.append(hits[location - 1])   # assuming this is the token.
     recorder.append(hits[location])
@@ -184,7 +181,7 @@ def _get_all_viable_hits(text):
     
     results = dict()
     
-    for regex in documenttokens.get_document_parsing_regexes():
+    for regex in lfp.documenttokens.get_document_parsing_regexes():
         
         #print "NEW regex:", regex.pattern
         
@@ -203,7 +200,7 @@ def _get_all_viable_hits(text):
                 continue
             
             if not record_text:
-                if headervalidity.check_whether_header_is_valuable(i, hits) \
+                if lfp.headervalidity.check_whether_header_is_valuable(i, hits) \
                 and _check_whether_chunk_is_new_section(i, hits, current_token_location):
                     record_text = True
                     record_header, recorder, current_token_location = _set_up_recorder(i, hits)
@@ -222,7 +219,7 @@ def _get_all_viable_hits(text):
                     current_token_location = None
                     recorder = list()
                     
-                    if headervalidity.check_whether_header_is_valuable(i, hits) \
+                    if lfp.headervalidity.check_whether_header_is_valuable(i, hits) \
                     and _check_whether_chunk_is_new_section(i, hits):
                         record_text = True
                         record_header, recorder, current_token_location = _set_up_recorder(i, hits)    
@@ -248,6 +245,6 @@ def _are_results_from_this_regex_split_acceptable(results):
     return len(results) > 0
 
 def get_best_litigation_note_hits(text):
-    text = preprocessing.sanitize_text(text)
+    text = lfp.preprocessing.sanitize_text(text)
     return _get_all_viable_hits(text)
     

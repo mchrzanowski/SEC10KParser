@@ -4,8 +4,7 @@ Created on Jul 11, 2012
 @author: mchrzanowski
 '''
 
-from litigationfootnoteparsing import headerpatternrepository, wordtokencreation
-
+import litigationfootnoteparsing as lfp
 import nltk
 import re
 import Utilities
@@ -18,7 +17,7 @@ def get_programming_fragment_check():
 
 def _check_whether_previous_section_ended_with_a_month(location, hits):
     
-    punctuated_tokens = wordtokencreation.punctuate_prior_section(location, hits)
+    punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
     if re.match("(Jan((uary)|[^A-Za-z])|Feb((ruary)|[^A-Za-z])|mar((ch)|[^A-Za-z])|apr((il)|[^A-Za-z])|may)", punctuated_tokens[-1], re.I):
         return True
     
@@ -34,14 +33,14 @@ def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location
     ''' check to make sure the last few words don't contain common words 
     that have numbers after them.'''
     
-    punctuated_tokens = wordtokencreation.punctuate_prior_section(location, hits)
+    punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
     if re.match("ITEM|NOTE(?!S)|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
         return True
 
     if _check_whether_previous_section_ended_with_a_month(location, hits):
         return True
     
-    last_sentence_fragment = wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
+    last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     if re.search("Units?\s*[0-9]*$", last_sentence_fragment) \
     or re.search("Region\s*[0-9]*$", last_sentence_fragment) \
     or re.search("USC\s*[0-9]*$", last_sentence_fragment):
@@ -52,7 +51,7 @@ def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location
     
 def are_there_more_left_parentheses_than_right_parentheses(location, hits):
     
-    last_sentence_fragment = wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
+    last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     char_frequency = Utilities.character_counter(last_sentence_fragment, '(', ')')
         
     if char_frequency['('] > char_frequency[')']:
@@ -61,7 +60,7 @@ def are_there_more_left_parentheses_than_right_parentheses(location, hits):
     return False
 
 def does_previous_section_end_with_a_complete_parenthetical_block(location, hits):
-    compressed_fragment = wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
+    compressed_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     
     if re.search("^\(.*\)$", compressed_fragment, flags=re.M | re.S):
         #print 'MATCH on parens end'
@@ -73,7 +72,7 @@ def does_previous_section_end_with_a_complete_parenthetical_block(location, hits
 def check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
     ''' did the last section end with note *something*, and did the current section start with
     note? if so, we can move on; this is a new sentence. '''
-    punctuated_tokens = wordtokencreation.punctuate_prior_section(location, hits)
+    punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
     if re.match("Note(?!S)", punctuated_tokens[-2], re.I) and re.search("Note(?!S)", hits[location - 1], re.I):
         return True
     
@@ -122,12 +121,12 @@ def check_whether_token_numbers_are_near_each_other(location, hits, current_head
 
 def did_last_section_end_with_punct_mark(location, hits):
     ''' check to see whether the previous section ended with a punct mark '''
-    punctuated_tokens = wordtokencreation.punctuate_prior_section(location, hits)
+    punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
     return re.match("[.?!]", punctuated_tokens[-1][-1])
 
 def does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
     
-    last_sentence_fragment = wordtokencreation.get_last_sentence_fragment(location, hits)
+    last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
     
     if last_sentence_fragment is None:
         return False
@@ -147,9 +146,9 @@ def was_cut_within_a_table(location, hits):
     
     if does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
         
-        last_sentence_fragment = wordtokencreation.get_last_sentence_fragment(location, hits)
+        last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
         
-        compressed_sentence_fragment = wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True)
+        compressed_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True)
 
         # now, do additional checks to see whether we picked up a table. 
         # tables normally have units of currency as well as the word follows somewhere.
