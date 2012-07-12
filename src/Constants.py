@@ -25,6 +25,8 @@ PATH_TO_FAILED_UNIT_TESTS = './failed_tests/'
 
 PATH_TO_PROCESSED_URL_DATA = './processed_url_data/'
 
+PATH_TO_VERB_FILE = os.path.join(os.curdir, '../etc/common_verbs.txt')
+
 SEC_WEBSITE = "http://www.sec.gov/"
 
 REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD = 0.1

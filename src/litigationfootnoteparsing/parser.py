@@ -1,0 +1,253 @@
+'''
+Created on Jun 13, 2012
+
+@author: mchrzanowski
+'''
+
+from litigationfootnoteparsing import documenttokens, \
+headerpatternrepository, headervalidity, preprocessing, \
+tokenvalidity, wordtokencreation
+
+import nltk
+import re
+import Utilities
+import verbclassifier
+
+def _check_if_valid_ending(location, hits, current_header_location):
+    
+    # the token is white space. end it when whitelisted headers are encountered.
+    if not re.search("[0-9A-Za-z]", hits[current_header_location]):
+        if _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+            return True
+        else:
+            return False
+    
+    elif _check_whether_section_is_part_of_another_section(location, hits, current_header_location) \
+    or headervalidity.check_whether_header_is_valuable(location, hits):
+        return False
+    
+    else:
+        return True
+    
+def _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+    
+    compressed_header = ''.join(headervalidity.get_header_of_chunk(location, hits))
+    
+    for legitimate_header in headerpatternrepository.get_legitimate_headers():
+        if re.search(legitimate_header, compressed_header):
+            return True
+        
+    return False
+
+def _check_whether_section_is_part_of_another_section(location, hits, current_header_location):
+    
+    #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
+    
+    # if we are recording a section of the 10-K, and we have stumbled upon a section
+    # that does not have lettering, then continue onwards.
+    if current_header_location is not None and not re.search("[A-Za-z]", hits[location]):
+        return True
+    
+    # check to make sure the last few words don't contain common words 
+    # that have numbers after them.
+    if tokenvalidity.does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
+        return True
+    
+    # did the last section end with note *something*, and did the current section start with
+    # note? if so, we can move on; this is a new sentence.
+    if tokenvalidity.check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
+        #print 'match on note ending'
+        return False
+    
+    if tokenvalidity.check_cases_of_previous_section_token_and_current_token(location, hits, current_header_location):
+        #print 'MATCH ON note casing'
+        return True
+    
+    if tokenvalidity.check_whether_token_numbers_are_near_each_other(location, hits, current_header_location):
+        #print "MATCH ON numerical proximity'
+        return True
+    
+    # everything is contained in parentheses? probably OK.
+    if tokenvalidity.does_previous_section_end_with_a_complete_parenthetical_block(location, hits):
+        return False
+    
+    if tokenvalidity.are_there_more_left_parentheses_than_right_parentheses(location, hits):
+        return True
+   
+    # a true value means that yes, we were in a table. 
+    # now, ask: are we recording a segment right now? if so, continue recording
+    # UNLESS this next section is itself its own section.
+    if tokenvalidity.was_cut_within_a_table(location, hits):
+        if current_header_location is None \
+        or _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+            return False
+        else:
+            return True
+    
+    # did the last section include something like "SEE"? those words typically indicate
+    # that not we're in a standalone section. do this check *AFTER* the table check
+    # as sometimes these words can be embedded in a table (in which case additional logic is required
+    # to determine which boolean to output).
+    if tokenvalidity.does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
+       return True
+   
+    return False
+
+def _does_section_contain_verbs(words):
+    
+    contains_verbs = False
+    for word in words:
+        if verbclassifier.is_word_a_common_verb(word):
+            #print "VERB MATCH:", word
+            contains_verbs = True
+            break
+    
+    return contains_verbs
+    
+def _check_whether_chunk_is_new_section(location, hits, current_token_location):
+    
+    #print "CHECKING:", hits[location]
+
+    words_in_hit = wordtokencreation.word_tokenize_hit(location, hits)
+    
+    # does it contain verbs? detritus usually doesn't.    
+    if not _does_section_contain_verbs(words_in_hit):
+        return False
+    
+    #print "VERB CHECK PASS"
+   
+    if _check_whether_section_is_part_of_another_section(location, hits, current_token_location):
+        return False
+    
+    #print "FRAGMENT CHECK PASS"
+    
+    # does it contain weird XML/HTML elements in the top-most section? 
+    # probably not what we want.
+    
+    top_section = ''.join(blob for blob in re.split("\n\n+", hits[location])[:3])
+    
+    #print "FIRST:" + top_section + "DONE"
+    
+    if re.search(tokenvalidity.get_programming_fragment_check(), top_section):
+        return False
+    
+    #print "JUNK TAG CHECK PASS"
+    
+    # does it contain the phrase "this Amendment"? If so, it's probably not what we want.
+    if re.search("this\s*Amendment", hits[location][:len(hits[location]) // 4]):
+        return False
+    
+    #print "Amendment check pass"
+    
+    # ditto for "this Agreement"
+    if re.search("this\s*Agreement", hits[location][:500]):
+        return False
+    
+    #print "Agreement check pass"
+
+    return True
+
+def _does_section_mention_litigation(text):
+    return re.search('litigation|legal|jury|verdict', text, re.I)
+
+def _cut_text_if_needed(text):
+    
+    # text might be too long because this is the last
+    # legal footnote. so cut it along markers that would
+    # not be OK to cut on normally.
+    
+    for regex in documenttokens.get_cutting_regexes():
+        if re.search(regex, text):
+            text = re.sub(regex, "", text)
+        
+    return text
+
+def _set_up_recorder(location, hits):
+    recorder = list()
+    record_header = ''.join(headervalidity.get_header_of_chunk(location, hits))
+    #print "CREATED:", record_header
+    recorder.append(hits[location - 1])   # assuming this is the token.
+    recorder.append(hits[location])
+    return record_header, recorder, location - 1
+
+def _transform_list_of_hits_into_result(recorder, record_header):
+    record = ''.join(recorder)
+    record = _cut_text_if_needed(record)
+    
+    if re.search("SUBSEQUENT", record_header, re.I):
+        if not _does_section_mention_litigation(record):
+            record = None
+    
+    return record
+
+def _get_all_viable_hits(text):
+    
+    results = dict()
+    
+    for regex in documenttokens.get_document_parsing_regexes():
+        
+        #print "NEW regex:", regex.pattern
+        
+        hits = re.split(regex, text)
+        
+        record_text = False
+        record_header = None
+        current_token_location = None
+        recorder = list()
+        
+        for i in xrange(len(hits)):
+            
+            # odd-numbered indices have tokens inside them.
+            if i & 1 == 1:
+                recorder.append(hits[i])
+                continue
+            
+            if not record_text:
+                if headervalidity.check_whether_header_is_valuable(i, hits) \
+                and _check_whether_chunk_is_new_section(i, hits, current_token_location):
+                    record_text = True
+                    record_header, recorder, current_token_location = _set_up_recorder(i, hits)
+            
+            elif _check_if_valid_ending(i, hits, current_token_location):
+                    
+                    record = _transform_list_of_hits_into_result(recorder, record_header)
+                    
+                    if record is not None:
+                        if record_header not in results:
+                            results[record_header] = list()
+                        results[record_header].append(record + '\n\n')
+
+                    record_text = False
+                    record_header = None
+                    current_token_location = None
+                    recorder = list()
+                    
+                    if headervalidity.check_whether_header_is_valuable(i, hits) \
+                    and _check_whether_chunk_is_new_section(i, hits):
+                        record_text = True
+                        record_header, recorder, current_token_location = _set_up_recorder(i, hits)    
+            else:
+                recorder.append(hits[i])
+        
+        if len(recorder) > 0 and record_header is not None:
+            
+            record = _transform_list_of_hits_into_result(recorder, record_header)
+            
+            if record is not None:
+                if record_header not in results:
+                    results[record_header] = list()
+                results[record_header].append(record + '\n\n')
+                
+        if _are_results_from_this_regex_split_acceptable(results):
+            # one type of regex is used. only one. notes don't take on different formats within the 10-K.
+            break           
+
+    return ''.join(''.join(results[key]) + '\n\n' for key in results)
+
+def _are_results_from_this_regex_split_acceptable(results):
+    return len(results) > 0
+
+def get_best_litigation_note_hits(text):
+    text = preprocessing.sanitize_text(text)
+    return _get_all_viable_hits(text)
+    

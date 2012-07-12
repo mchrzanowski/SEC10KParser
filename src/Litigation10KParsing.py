@@ -10,7 +10,7 @@ from HTMLTagStripper import HTMLTagStripper
 
 import Constants
 import LegalProceedingParsing
-import LitigationFootnoteParsing
+import litigationfootnoteparsing.parser
 import lxml.html.clean
 import re
 import TextSanitizer
@@ -89,7 +89,7 @@ def _get_litigaton_mentions(result, get_legal_proceeding_only, get_litigation_fo
     
     # now, get the note sections dealing with legal contingencies
     if not get_legal_proceeding_only:
-        legal_oriented_notes = LitigationFootnoteParsing.get_best_litigation_note_hits(result.processed_text)
+        legal_oriented_notes = litigationfootnoteparsing.parser.get_best_litigation_note_hits(result.processed_text)
         result.legal_note_mentions = legal_oriented_notes
     
 
