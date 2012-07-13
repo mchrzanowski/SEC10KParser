@@ -9,12 +9,6 @@ import nltk
 import re
 import Utilities
 
-
-def get_programming_fragment_check():
-    return re.compile("XML|/td|\sdiv\s|\svalign\s|falsefalse|truefalse|falsetrue" + \
-                 "|link:[0-9]+px|font-family|link:|background-color|utf-8;" + \
-                 "|us-gaap:|px|\sfont\s", re.I)
-
 def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
     ''' check to make sure the last few words don't contain common words 
     that have numbers after them.'''
