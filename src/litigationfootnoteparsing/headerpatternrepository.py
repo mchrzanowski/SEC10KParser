@@ -68,4 +68,6 @@ def get_legitimate_headers():
         re.compile("Parent\s*Company\s*Only", re.I), \
         re.compile("Related\s*Party\s*Transaction", re.I), \
         re.compile("Benefit\s*Plans", re.I), \
-        re.compile("SEGMENTS\s*OF\s*BUSINESS", re.I | re.M) ]
+        re.compile("SEGMENTS\s*OF\s*BUSINESS", re.I | re.M), \
+        re.compile("Segment\s*Information", re.I | re.M), \
+        re.compile("Acquisitions?", re.I | re.M) ]

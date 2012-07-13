@@ -16,7 +16,7 @@ def sanitize_text(text):
 
 def _shape_text(text):
 
-    text = re.sub("\)(?P<lol>[0-9])", ") \g<lol>", text)
+    text = re.sub("\)(?P<number>[0-9])", ") \g<number>", text)
 
     return text
     

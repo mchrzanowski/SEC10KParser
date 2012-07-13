@@ -27,8 +27,8 @@ def get_document_parsing_regexes():
         _item_3_is_lodged_somewhere_assume_legal_proceeding_is_capitalized(),  \
         _item_3_is_lodged_somewhere_assume_item_is_capitalized(),      \
         _item_3_is_just_fine_but_not_item_4_case_insensitive(), \
-        _item_3_is_lodged_somewhere_case_insensitive()
-        
+        _item_3_is_lodged_somewhere_case_insensitive(), \
+        _item_3_is_lodged_somewhere_case_insensitive_allow_for_number_packing(),
 
 def _default_case_sensitive():
     ''' so many 10-Ks have the litigation item structured thusly:
@@ -137,6 +137,10 @@ def _item_3_is_just_fine_but_not_item_4_case_insensitive():
 def _item_3_is_lodged_somewhere_case_insensitive():
     return re.compile("(?<=[A-Z])ITEM\s*?3[^A0-9][.\s]*?[^,].*?(?=\s*?ITEM\s*?(3A|4|5))", re.I | re.M | re.S), None
 
+def _item_3_is_lodged_somewhere_case_insensitive_allow_for_number_packing():
+    return re.compile("(?<=[0-9])ITEM\s*?3[^A0-9][.\s]*?[^,].*?(?=\s*?ITEM\s*?(3A|4|5))", re.I | re.M | re.S), \
+    re.compile("^\s*ITEM\s*3[\.\s]*Legal\s*Proceedings\s*\(?\s*continued\s*\)?", re.I | re.M)   # make sure to get the whole item proceeding section,
+                                                                                                # not a subsection.
 def common_words_in_legitimate_legal_proceeding_hits():
     ''' a valid legal proceeding mention - as opposed to something detritus - always has certain words. check for these '''
     return re.compile("(WE$|SEE$|US$|ARE|REFER|APPEAR|REGARD$|has|had|is$|was$|include|none|become|became|will)", re.I)
