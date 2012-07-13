@@ -20,7 +20,9 @@ def _remove_common_irrelevant_number_patterns(text):
     # years.
     text = re.sub("20[0-7][0-9]", "year", text)
     text = re.sub("19[8-9][0-9]", "year", text)
-
+    
+    # months.
+    text = re.sub("(?P<month>Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sept?|Oct|Nov|Dec)\s*\.", "\g<month> ", text, flags=re.I | re.M)
     return text
 
 def _edit_text_to_remove_periods(text):

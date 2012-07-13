@@ -16,7 +16,7 @@ def get_header_of_chunk(location, hits):
     
     return_list = list()
     for piece in words:
-        if re.search("[A-Z0-9a-z]", piece):
+        if re.search("[()A-Z0-9a-z]", piece):
             return_list.append(piece)
         
         if len(return_list) == 4:
@@ -68,10 +68,9 @@ def check_whether_header_is_valuable(location, hits):
         #print "MATCH ON NUMBER"
         return False
     
-    # three-digit numbers are also never present.
-    for blob in header:
-        if re.match("[0-9]{3}", blob):
-            #print "MATCH ON TRIPLE NUMBER"
-            return False
+    # does it have a letter in parentheses that is not "A"? 
+    # if so, forget it.
+    if re.search("\([B-Zb-z]\)", compressed_header):
+        return False
     
     return True

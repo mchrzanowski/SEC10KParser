@@ -26,7 +26,8 @@ def get_patterns_of_headers_we_dont_want():
         re.compile("Reimbursement",  re.I), \
         re.compile("Assistance.*Litigation",  re.I | re.M | re.S), \
         re.compile("Contingent.*Interest",  re.I | re.M | re.S),  \
-        re.compile("primarily", re.I) ]
+        re.compile("primarily", re.I), \
+        re.compile("Performance\s*Contingenc", re.I | re.M) ]
 
 def get_legitimate_headers():
     ''' a list of patterns of common headers '''
@@ -66,4 +67,5 @@ def get_legitimate_headers():
         re.compile("Stock\s*Option", re.I), \
         re.compile("Parent\s*Company\s*Only", re.I), \
         re.compile("Related\s*Party\s*Transaction", re.I), \
-        re.compile("Benefit\s*Plans", re.I) ]
+        re.compile("Benefit\s*Plans", re.I), \
+        re.compile("SEGMENTS\s*OF\s*BUSINESS", re.I | re.M) ]

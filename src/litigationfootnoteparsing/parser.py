@@ -48,6 +48,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     # check to make sure the last few words don't contain common words 
     # that have numbers after them.
     if lfp.tokenvalidity.does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
+        #print "match on common word ending"
         return True
     
     # did the last section end with note *something*, and did the current section start with
@@ -61,32 +62,36 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
         return True
     
     if lfp.tokenvalidity.check_whether_token_numbers_are_near_each_other(location, hits, current_header_location):
-        #print "MATCH ON numerical proximity'
+        #print "MATCH ON numerical proximity"
         return True
     
     # everything is contained in parentheses? probably OK.
     if lfp.tokenvalidity.does_previous_section_end_with_a_complete_parenthetical_block(location, hits):
+        #print "parenthetical block ending"
         return False
     
     if lfp.tokenvalidity.are_there_more_left_parentheses_than_right_parentheses(location, hits):
+        #print "match on left versus right parenths"
         return True
    
     # a true value means that yes, we were in a table. 
     # now, ask: are we recording a segment right now? if so, continue recording
     # UNLESS this next section is itself its own section.
     if lfp.tokenvalidity.was_cut_within_a_table(location, hits):
+        #print "inside table"
         if current_header_location is None \
         or _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+            #print "start over"
             return False
         else:
+            #print "continue recording"
             return True
     
     # did the last section include something like "SEE"? those words typically indicate
-    # that not we're in a standalone section. do this check *AFTER* the table check
-    # as sometimes these words can be embedded in a table (in which case additional logic is required
-    # to determine which boolean to output).
+    # that not we're in a standalone section. 
     if lfp.tokenvalidity.does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
-       return True
+        #print "matchon on common cut pattern"
+        return True
    
     return False
 
@@ -141,6 +146,19 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         return False
     
     #print "Agreement check pass"
+    
+    if re.search("Basis\s*of\s*Presentation", hits[location][:500], re.M):
+        return False
+    
+    #print "Basis of Presentation pass"
+
+    # does the first chunk contain the phrase 
+    # "of the Notes to Consolidated Financial Statements"?
+    # this normally means this section was part of a previous section.
+    if re.search("of\s*the\s*Notes\s*to\s*Consolidated", hits[location][:500], re.I | re.M):
+        return False
+    
+    #print "Of the pass"
 
     return True
 
