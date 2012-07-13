@@ -108,7 +108,7 @@ def _does_section_contain_verbs(words):
     
 def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
-    #print "CHECKING:", hits[location]
+   # print "CHECKING:", hits[location]
 
     words_in_hit = lfp.wordtokencreation.word_tokenize_hit(location, hits)
     
@@ -116,41 +116,41 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     if not _does_section_contain_verbs(words_in_hit):
         return False
     
-    #print "VERB CHECK PASS"
+   # print "VERB CHECK PASS"
    
     if _check_whether_section_is_part_of_another_section(location, hits, current_token_location):
         return False
     
-    #print "FRAGMENT CHECK PASS"
+   # print "FRAGMENT CHECK PASS"
     
     # does it contain weird XML/HTML elements in the top-most section? 
     # probably not what we want.
     
     top_section = ''.join(blob for blob in re.split("\n\n+", hits[location])[:3])
     
-    #print "FIRST:" + top_section + "DONE"
+   # print "FIRST:" + top_section + "DONE"
     
     if re.search(lfp.tokenvalidity.get_programming_fragment_check(), top_section):
         return False
     
-    #print "JUNK TAG CHECK PASS"
+   # print "JUNK TAG CHECK PASS"
     
     # does it contain the phrase "this Amendment"? If so, it's probably not what we want.
     if re.search("this\s*Amendment", hits[location][:len(hits[location]) // 4]):
         return False
     
-    #print "Amendment check pass"
+   # print "Amendment check pass"
     
     # ditto for "this Agreement"
     if re.search("this\s*Agreement", hits[location][:500]):
         return False
     
-    #print "Agreement check pass"
+   # print "Agreement check pass"
     
     if re.search("Basis\s*of\s*Presentation", hits[location][:500], re.M):
         return False
     
-    #print "Basis of Presentation pass"
+   # print "Basis of Presentation pass"
 
     # does the first chunk contain the phrase 
     # "of the Notes to Consolidated Financial Statements"?
@@ -158,7 +158,7 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     if re.search("of\s*the\s*Notes\s*to\s*Consolidated", hits[location][:500], re.I | re.M):
         return False
     
-    #print "Of the pass"
+   # print "Of the pass"
 
     return True
 
@@ -201,7 +201,7 @@ def _get_all_viable_hits(text):
     
     for regex in lfp.documenttokens.get_document_parsing_regexes():
         
-        #print "NEW regex:", regex.pattern
+       # print "NEW regex:", regex.pattern
         
         hits = re.split(regex, text)
         

@@ -10,9 +10,15 @@ def sanitize_text(text):
     
     text = _edit_text_to_remove_periods(text)
     text = _remove_common_irrelevant_number_patterns(text)
+    text = _shape_text(text)
     
     return text
-    
+
+def _shape_text(text):
+
+    text = re.sub("\)(?P<lol>[0-9])", ") \g<lol>", text)
+
+    return text
     
 def _remove_common_irrelevant_number_patterns(text):
     ''' rip out patterns we don't want '''
