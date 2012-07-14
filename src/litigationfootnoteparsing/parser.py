@@ -38,7 +38,9 @@ def _check_whether_current_section_header_is_whitelisted_as_new_section(location
 
 def _check_whether_section_is_part_of_another_section(location, hits, current_header_location):
     
-    #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION", hits[location]
+    #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION:", hits[location]
+
+    #print "Fragment:", lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True)
     
     # if we are recording a section of the 10-K, and we have stumbled upon a section
     # that does not have lettering, then continue onwards.
@@ -55,7 +57,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     # did the last section end with note *something*, and did the current section start with
     # note? if so, we can move on; this is a new sentence.
     if lfp.tokenvalidity.check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
-        #print 'match on note ending'
+    #    #print 'match on note ending'
         return False
     
     if lfp.tokenvalidity.check_cases_of_previous_section_token_and_current_token(location, hits, current_header_location):
@@ -109,60 +111,59 @@ def _does_section_contain_verbs(words):
     
 def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
-   #print "CHECKING:", hits[location]
+    #print "CHECKING:", hits[location]
 
     words_in_hit = lfp.wordtokencreation.word_tokenize_hit(location, hits)
     
     # does it contain verbs? detritus usually doesn't.    
     if not _does_section_contain_verbs(words_in_hit):
+        #print "match on verb check"
         return False
     
-   #print "VERB CHECK PASS"
    
     if _check_whether_section_is_part_of_another_section(location, hits, current_token_location):
+        #print "match on fragment check"
         return False
-    
-   #print "FRAGMENT CHECK PASS"
-    
+        
     # does it contain weird XML/HTML elements in the top-most section? 
     # probably not what we want.
     
     top_section = ''.join(blob for blob in re.split("\n\n+", hits[location])[:3])
         
     if re.search(lfp.hitprocessing.get_programming_fragment_check(), top_section):
+        #print "match on JUNK TAG CHECK"
         return False
     
-   #print "JUNK TAG CHECK PASS"
     
     # does it contain the phrase "this Amendment"? If so, it's probably not what we want.
     if re.search("this\s*Amendment", top_section):
+        #print "match on Amendment check"
         return False
     
-   #print "Amendment check pass"
     
     # ditto for "this Agreement"
     if re.search("this\s*Agreement", hits[location][:500]):
+        #print "match on  Agreement check"
         return False
-    
-   #print "Agreement check pass"
     
     if re.search("Basis\s*of\s*Presentation", hits[location][:500], re.M):
+        #print "match on bop"
         return False
-    
-   #print "Basis of Presentation pass"
 
     # does the first chunk contain the phrase 
     # "of the Notes to Consolidated Financial Statements"?
     # this normally means this section was part of a previous section.
     if re.search("of\s*the\s*Notes\s*to\s*Consolidated", hits[location][:500], re.I | re.M):
+        #print "match on of the"
         return False
-
-    #print "Of the pass"
 
     if re.search("Administrative\s*Agent", hits[location][:500], re.M):
+        #print "match on admin agent"
         return False
     
-    #print "admin agent pass"
+    if re.search("(Borrower|Guarantor|Licensee|Lender|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
+        #print "match on bglled"
+        return False
 
     return True
 

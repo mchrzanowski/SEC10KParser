@@ -48,6 +48,7 @@ def check_whether_previous_section_ended_with_note_when_the_tokenization_uses_no
     ''' did the last section end with note *something*, and did the current section start with
     note? if so, we can move on; this is a new sentence. '''
     punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
+
     if re.match("Note(?!S)", punctuated_tokens[-2], re.I) and re.search("Note(?!S)", hits[location - 1], re.I):
         return True
     

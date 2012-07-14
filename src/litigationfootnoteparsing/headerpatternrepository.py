@@ -79,4 +79,6 @@ def get_legitimate_headers():
         re.compile("Ownership", re.I), \
         re.compile("Employee\s*Benefit", re.I), \
         re.compile("Share.*Based", re.I | re.M), \
-        re.compile("Financial\s*Data", re.I) ]
+        re.compile("Financial\s*Data", re.I), \
+        re.compile("Liquidity", re.I), \
+        re.compile("Restatement", re.I) ]
