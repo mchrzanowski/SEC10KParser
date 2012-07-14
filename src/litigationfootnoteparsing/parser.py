@@ -57,7 +57,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     # did the last section end with note *something*, and did the current section start with
     # note? if so, we can move on; this is a new sentence.
     if lfp.tokenvalidity.check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
-    #    #print 'match on note ending'
+        #print 'match on note ending'
         return False
     
     if lfp.tokenvalidity.check_cases_of_previous_section_token_and_current_token(location, hits, current_header_location):
@@ -145,6 +145,10 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     if re.search("this\s*Agreement", hits[location][:500]):
         #print "match on  Agreement check"
         return False
+
+    if re.search("RESTATED\s*CREDIT\s*AGREEMENT", hits[location][:1000], re.I | re.M):
+        #print "match on rca"
+        return False
     
     if re.search("Basis\s*of\s*Presentation", hits[location][:500], re.M):
         #print "match on bop"
@@ -161,8 +165,8 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on admin agent"
         return False
     
-    if re.search("(Borrower|Guarantor|Licensee|Lender|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
-        #print "match on bglled"
+    if re.search("(Borrower|Guarantor|Licensee|Lender|Holder|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
+        #print "match on bgllhed"
         return False
 
     return True

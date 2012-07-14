@@ -42,7 +42,7 @@ def _sections_start_with_word_note_and_are_numbered_more_freeform():
     return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,]))(?!\s*[`'\"])", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered():
-    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z])", re.M | re.S)
+    return re.compile("((?<!\()N[oO][tT][eE]\s+[A-Z])", re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
@@ -66,7 +66,7 @@ def _two_numbers_in_parentheses():
     return re.compile("(\([0-2]?[0-9]\)(?!\s*[0-9]))", re.M)
 
 def _two_numbers_and_a_period_no_spaces():
-    return re.compile("((?<![$M/0-9])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
+    return re.compile("((?<![M/0-9])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
 
 def _two_numbers_and_no_period_with_one_space_with_capitals():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s(?=[A-Z]))", re.M | re.S)

@@ -12,9 +12,9 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0001000697')
+    CIK = Utilities.format_CIK('0000012355')
     
-    for year in xrange(2007, 2007 + 1):
+    for year in xrange(2004, 2012 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, year)
         
@@ -25,11 +25,11 @@ def main():
             company_name = CorpusAccess.get_company_name_from_corpus(CIK)
 
             results = Litigation10KParsing.parse(CIK, year, company_name, processed_website_data=processed_data)
+
+            if CorpusAccess.get_company_name_from_corpus(CIK) is None:
+                CorpusAccess.write_company_name_and_cik_mapping_to_corpus(CIK, results.company_name)
             
-            CorpusAccess.write_company_name_and_cik_mapping_to_corpus(CIK, results.company_name)
-                        
             print "Wrote Processed URL Data: ",
-              
             if processed_data is None:        
                 CorpusAccess.write_processed_url_data_to_file(data=results.processed_text, CIK=results.CIK, filing_year=results.filing_year)
                 print "\tYES"

@@ -81,4 +81,7 @@ def get_legitimate_headers():
         re.compile("Share.*Based", re.I | re.M), \
         re.compile("Financial\s*Data", re.I), \
         re.compile("Liquidity", re.I), \
-        re.compile("Restatement", re.I) ]
+        re.compile("Restatement", re.I), \
+        re.compile("Financial\s*Instrument", re.I), \
+        re.compile("Supplemental", re.I), \
+        re.compile("Forward\s*Equity", re.I) ]
