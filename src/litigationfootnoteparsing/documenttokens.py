@@ -25,6 +25,8 @@ def get_document_parsing_regexes():
         _two_numbers_and_no_period_with_absolutely_no_spaces_with_capitals(), \
         _two_numbers_and_a_period_and_spaces_no_pre_numeric_restrictions(), \
         _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions(), \
+        _a_letter_in_parentheses_followed_by_a_cap(), \
+        _a_letter_in_parentheses(), \
         _whitespace_followed_by_newline_and_a_few_words(), \
     
 def _sections_start_with_an_uppercase_letter():
@@ -68,6 +70,12 @@ def _two_numbers_and_no_period_with_absolutely_no_spaces_with_capitals():
 
 def _two_numbers_in_parentheses():
     return re.compile("(\([0-2]?[0-9]\)(?!\s*[0-9]))", re.M)
+
+def _a_letter_in_parentheses_followed_by_a_cap():
+    return re.compile("(\([E-Z]\)\s*(?=[A-Z]))", re.M)
+
+def _a_letter_in_parentheses():
+    return re.compile("(\([E-Z]\)(?!\s*[0-9]))", re.M)
 
 def _two_numbers_and_a_period_no_spaces():
     return re.compile("((?<![M/0-9])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)

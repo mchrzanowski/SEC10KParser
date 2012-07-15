@@ -12,9 +12,9 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0000016040')
+    CIK = Utilities.format_CIK('0000004285')
     
-    for year in xrange(2004, 2004 + 1):
+    for year in xrange(2005, 2007 + 1):
                 
         print "Begin:\tCIK:%s\t%s" % (CIK, year)
         
@@ -26,7 +26,7 @@ def main():
 
             results = Litigation10KParsing.parse(CIK, year, company_name, processed_website_data=processed_data)
 
-            print "Wrote CIK to Company Name mapping:",
+            print "Wrote mapping:",
             if CorpusAccess.get_company_name_from_corpus(CIK) is None:
                 CorpusAccess.write_company_name_and_cik_mapping_to_corpus(CIK, results.company_name)
                 print "\tYES"

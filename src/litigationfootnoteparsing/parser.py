@@ -170,6 +170,10 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on bgllhed"
         return False
 
+    if re.search("Consulting\s*Period|Closing|Transferred\s*Subsidiary|Exhibit[^s]", hits[location][:500]):
+        #print "match on cpctse"
+        return False
+
     return True
 
 def _does_section_mention_litigation(text):
