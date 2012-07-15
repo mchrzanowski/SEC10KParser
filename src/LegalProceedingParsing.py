@@ -63,7 +63,7 @@ def _get_all_possible_hits(text):
                         invalid_regex_pass = False
                         break
             
-            if invalid_regex_pass and invalid_regex:
+            if invalid_regex_pass:
                 results.add(candidate)
                 
     return results

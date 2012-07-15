@@ -157,7 +157,8 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     # does the first chunk contain the phrase 
     # "of the Notes to Consolidated Financial Statements"?
     # this normally means this section was part of a previous section.
-    if re.search("of\s*the\s*Notes\s*to\s*Consolidated", hits[location][:500], re.I | re.M):
+    if re.search("(of|in)\s*the\s*Notes\s*to\s*(the)?\s*Consolidated", hits[location][:500], re.I | re.M) \
+    and not re.search("except\s*as\s*follows", hits[location][:500], re.I | re.M):
         #print "match on of the"
         return False
 
@@ -247,7 +248,7 @@ def _get_all_viable_hits(text):
                     recorder = list()
                     
                     if lfp.headervalidity.check_whether_header_is_valuable(i, hits) \
-                    and _check_whether_chunk_is_new_section(i, hits):
+                    and _check_whether_chunk_is_new_section(i, hits, current_token_location):
                         record_text = True
                         record_header, recorder, current_token_location = _set_up_recorder(i, hits)    
             else:

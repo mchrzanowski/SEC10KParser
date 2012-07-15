@@ -43,7 +43,7 @@ def _edit_text_to_remove_periods(text):
         text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
     
     # names with middle initials
-    text = re.sub("(?P<before>[A-Z][a-z]+) +[A-Z]\.\s+(?P<after>[A-Z][a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
+    text = re.sub("(?P<before>[A-Z](?!ote)[a-z]+) +[A-Z]\.\s+(?P<after>[A-Z](?!ote)[a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
     
     # common abbreviations with periods.
     text = re.sub("U\s*\.\s*S\.\s*C\.", "USC", text, flags=re.I | re.M | re.S)

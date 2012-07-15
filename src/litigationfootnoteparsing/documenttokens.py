@@ -12,6 +12,7 @@ def get_document_parsing_regexes():
         _sections_start_with_word_note_and_are_numbered_more_freeform(), \
         _note_sections_in_parentheses(), \
         _sections_start_with_word_note_and_are_lettered(), \
+        _sections_start_with_word_note_and_are_lettered_no_spaces_with_period(), \
         _two_numbers_and_a_period_and_spaces(),    \
         _sections_start_with_an_uppercase_letter(), \
         _two_numbers_and_a_backslash_and_spaces(), \
@@ -30,19 +31,22 @@ def _sections_start_with_an_uppercase_letter():
     return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
 
 def _note_sections_in_parentheses():
-    return re.compile("(\(\s*Note\s*[0-9]+(?![0-9,AB])\)(?!\s*\.))", re.I | re.M | re.S)
+    return re.compile("(\(\s*Note(?!s)\s*[0-9]+(?![0-9,AB])\)(?!\s*\.))", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered_case_sensitive():
-    return re.compile("((?<!\()NOTE\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:)?)", re.M | re.S)
+    return re.compile("((?<!\()NOTE(?!S)\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:)?)", re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered():
-    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:)?)", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note(?!s)\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:)?)", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered_more_freeform():
-    return re.compile("((?<!\()Note\s*[0-9]+(?![0-9,]))(?!\s*[`'\"])", re.I | re.M | re.S)
+    return re.compile("((?<!\()Note(?!s)\s*[0-9]+(?![0-9,]))(?!\s*[`'\"])", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered():
     return re.compile("((?<!\()N[oO][tT][eE]\s+[A-Z])", re.M | re.S)
+
+def _sections_start_with_word_note_and_are_lettered_no_spaces_with_period():
+    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z]\.)", re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
