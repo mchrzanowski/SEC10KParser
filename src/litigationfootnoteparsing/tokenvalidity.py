@@ -52,7 +52,7 @@ def does_previous_section_end_with_a_word_with_an_uncommon_capitalized_word(loca
         return False
 
     if re.match("^[A-Z][A-Za-z]+[./!]?$", last_sentence_fragment[-1]) and \
-    not re.search("Content|Exhibit|Note|Item:"):
+    not re.search("Content|Exhibit|Note|Item", last_sentence_fragment[-1]):
         return True
 
     return False

@@ -54,10 +54,6 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
         #print "match on common word ending"
         return True
 
-    if re.match("^[\s0-9]+[\s.?!:]?$", hits[location - 1]) and \
-    lfp.tokenvalidity.does_previous_section_end_with_a_word_with_an_uncommon_capitalized_word(location, hits):
-        return True
-    
     # did the last section end with note *something*, and did the current section start with
     # note? if so, we can move on; this is a new sentence.
     if lfp.tokenvalidity.check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
