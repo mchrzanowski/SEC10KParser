@@ -135,7 +135,7 @@ def write_data_to_corpus(data, CIK, filing_year, path):
     
     if data is None or len(data) == 0:
         raise Exception("Nothing to write!")
-                
+                    
     CIK = Utilities.format_CIK(CIK)
 
     if not os.path.exists(path):
