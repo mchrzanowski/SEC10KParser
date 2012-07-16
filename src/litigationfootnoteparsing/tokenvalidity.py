@@ -44,6 +44,19 @@ def does_previous_section_end_with_a_complete_parenthetical_block(location, hits
     return False
 
 
+def does_previous_section_end_with_a_word_with_an_uncommon_capitalized_word(location, hits):
+
+    last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
+
+    if last_sentence_fragment is None:
+        return False
+
+    if re.match("^[A-Z][A-Za-z]+[./!]?$", last_sentence_fragment[-1]) and \
+    not re.search("Content|Exhibit|Note|Item:"):
+        return True
+
+    return False
+
 def does_last_section_end_with_note(location, hits):
 
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
@@ -124,7 +137,7 @@ def does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pat
         # found special word. this is not a complete sentence.
         # these special words are here because there are all sorts of garbage sections
         # that have verbs but are actually the text from graphs and charts.
-        if re.search("see|under|SUMMARIZEd|includ(ed|ing)|DISCUSS|REFER|describe|disclose|violate|approve|further", word, re.I): 
+        if re.search("see|under|SUMMARIZEd|includ(ed|ing)|DISCUSS|REFER|describe|disclose|fined|violate|approve|further", word, re.I): 
             #print "MATCH:", word
             return True
     

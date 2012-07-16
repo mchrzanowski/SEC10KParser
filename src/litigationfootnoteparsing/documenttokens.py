@@ -69,7 +69,7 @@ def _two_numbers_and_no_period_with_absolutely_no_spaces_with_capitals():
     return re.compile("((?<![M/0-9])\s*[0-3]?[0-9]\s*(?=[A-Z]))", re.M | re.S)
 
 def _two_numbers_in_parentheses():
-    return re.compile("(\([0-2]?[0-9]\)(?!\s*[0-9]))", re.M)
+    return re.compile("(\([0-2]?[0-9]\)(?=\s*\.?\s*[A-Z]))", re.M)
 
 def _a_letter_in_parentheses_followed_by_a_cap():
     return re.compile("(\([E-Z]\)\s*(?=[A-Z]))", re.M)

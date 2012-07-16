@@ -53,6 +53,10 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     if lfp.tokenvalidity.does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
         #print "match on common word ending"
         return True
+
+    if re.match("^[\s0-9]+[\s.?!:]?$", hits[location - 1]) and \
+    lfp.tokenvalidity.does_previous_section_end_with_a_word_with_an_uncommon_capitalized_word(location, hits):
+        return True
     
     # did the last section end with note *something*, and did the current section start with
     # note? if so, we can move on; this is a new sentence.
@@ -174,6 +178,14 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
 
     if re.search("Consulting\s*Period|Closing|Transferred\s*Subsidiary|Exhibit[^s]", hits[location][:500]):
         #print "match on cpctse"
+        return False
+
+    if re.search("Item\s*3[\s\.]*Legal\s*Proceeding", hits[location][:500], re.I):
+        #print "match on item 3"
+        return False
+
+    if re.search("(Share|Stock)holders.*Equity", hits[location][:500], re.I):
+        #print "match on ste"
         return False
 
     return True

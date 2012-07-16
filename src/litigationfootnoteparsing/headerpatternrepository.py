@@ -89,4 +89,8 @@ def get_legitimate_headers():
         re.compile("Supplemental", re.I), \
         re.compile("Forward\s*Equity", re.I | re.M), \
         re.compile("Segment\s*Information", re.I | re.M), \
-        re.compile("Financial\s*Statement", re.I | re.M) ]
+        re.compile("Financial\s*Statement", re.I | re.M), \
+        re.compile("Warranty\s*Obligations", re.I | re.M), \
+        re.compile("Major\s*Group", re.I | re.M), \
+        re.compile("Capital\s*Stock", re.I | re.M) ]
+        

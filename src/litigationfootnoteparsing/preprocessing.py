@@ -46,6 +46,8 @@ def _edit_text_to_remove_periods(text):
     text = re.sub("(?P<before>[A-Z](?!ote)[a-z]+) +[A-Z]\.\s+(?P<after>[A-Z](?!ote)[a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
     
     # common abbreviations with periods.
+    text = re.sub("(?P<before>SFAS\s*[0-9]+\s*)\.", "\g<before>", text, flags=re.M) 
+
     text = re.sub("U\s*\.\s*S\.\s*C\.", "USC", text, flags=re.I | re.M | re.S)
     text = re.sub("B\.\s*S\.\s*C\.", " BSC ", text, flags=re.I | re.M | re.S)
 
@@ -54,7 +56,7 @@ def _edit_text_to_remove_periods(text):
     text = re.sub("N\s*\.\s*A\.", "NA", text, flags=re.I | re.M | re.S)
     text = re.sub("K\s*\.\s*K\.", "KK", text, flags=re.I | re.M | re.S)
     text = re.sub("No\.", "No", text, flags=re.M | re.S) 
-    
+
     text = re.sub("(?P<before>[A-Z])\s*\.(?P<after>[A-Z])\s*\.", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
     
     return text
