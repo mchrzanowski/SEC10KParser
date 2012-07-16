@@ -92,7 +92,9 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     
     # did the last section include something like "SEE"? those words typically indicate
     # that not we're in a standalone section. 
-    if lfp.tokenvalidity.does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
+    # make sure the last word doesnt end with "NOTE" as we pre-process periods out containing that word.
+    if lfp.tokenvalidity.does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits) \
+    and not lfp.tokenvalidity.does_last_section_end_with_note(location, hits):
         #print "matchon on common cut pattern"
         return True
    
@@ -206,6 +208,11 @@ def _transform_list_of_hits_into_result(recorder, record_header):
     if re.search("SUBSEQUENT", record_header, re.I):
         if not _does_section_mention_litigation(record):
             record = None
+
+    # almost all records are at least X chars. if not, it's 
+    # probably something that we don't want.
+    if record is not None and Utilities.get_alpha_numeric_count(record) < 200:
+        record = None
     
     return record
 

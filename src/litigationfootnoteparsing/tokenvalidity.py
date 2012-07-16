@@ -14,7 +14,7 @@ def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location
     that have numbers after them.'''
     
     punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
-    if re.match("ITEM|NOTE(?!S)|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
+    if re.match("ITEM|NOTE(?![0-9S])|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
         return True
 
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
@@ -42,8 +42,20 @@ def does_previous_section_end_with_a_complete_parenthetical_block(location, hits
         return True
     
     return False
+
+
+def does_last_section_end_with_note(location, hits):
+
+    last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
+
+    if last_sentence_fragment is None:
+        return False
+
+    if re.search("Note", last_sentence_fragment[-1], re.I):
+        return True
     
-    
+    return False
+
 def check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
     ''' did the last section end with note *something*, and did the current section start with
     note? if so, we can move on; this is a new sentence. '''
