@@ -15,6 +15,7 @@ def _check_if_valid_ending(location, hits, current_header_location):
     # the token is white space. end it when whitelisted headers are encountered.
     if not re.search("[0-9A-Za-z]", hits[current_header_location]):
         if _check_whether_current_section_header_is_whitelisted_as_new_section(location, hits):
+            #print 'EXIT'
             return True
         else:
             return False
@@ -115,7 +116,7 @@ def _does_section_contain_verbs(words):
             break
     
     return contains_verbs
-    
+
 def _check_whether_chunk_is_new_section(location, hits, current_token_location):
     
     #print "CHECKING:", hits[location]
@@ -173,7 +174,7 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on admin agent"
         return False
     
-    if re.search("(Borrower|[^\"]Guarantor|Licensee|Lender|Holder|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
+    if re.search("(Borrower|[^\"]Guarantor|Licensee|[tT][hH][eE]\s*Committee|Lender|Holder|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
         #print "match on bgllhed"
         return False
 
@@ -181,12 +182,29 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on cpctse"
         return False
 
-    if re.search("Item\s*3[\s\.]*Legal\s*Proceeding", hits[location][:500], re.I):
+    if re.search("to\s*the\s*consolidated\s*financial\s*statements\s*under\s*Item", hits[location][:500], re.I):
+        #print "ttcsfsuI"
+        return False
+
+    if re.search("of\s*our\s*audited\s*consolidated\s*financial\s*statements", hits[location][:500], re.I):
+        #print "ooacfs"
+        return False
+
+    if re.search("(Item\s*)?3[\s\.]*Legal\s*Proceeding", hits[location][:500], re.I):
         #print "match on item 3"
         return False
 
     if re.search("(Share|Stock)holders.*Equity", hits[location][:500], re.I):
         #print "match on ste"
+        return False
+
+    if re.search("Postretirement", hits[location][:500], re.I):
+        #print "match on p"
+        return False
+
+    if re.search("LEGAL\s*PROCEEDING", hits[location][:500]) and re.search("3", hits[location - 1]) \
+    and (re.search("Item", hits[location - 1], re.I) or re.search("Item", hits[location - 2][-100:], re.I)):
+        #print "LP"
         return False
 
     #print "HERE"

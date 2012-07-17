@@ -119,12 +119,15 @@ def _write_files_to_corpus(root_path, cik):
     name = CorpusAccess.get_company_name_from_corpus(cik)
 
     name = re.sub("\/", "", name)
+    name = name.strip()
 
     folder_name = cik + " - " + name
 
     cik_path = os.path.join(root_path, folder_name)
     if not os.path.exists(cik_path):
         os.makedirs(cik_path)
+
+    print "Writing to:", cik_path
 
     _write_year_files(cik_path, results)
     _write_all_file(cik_path, results)
@@ -161,7 +164,7 @@ def _get_ciks_to_print():
             line = line.strip()
             if re.match("^0", line):
                 ciks.add(line)
-            if len(ciks) == 50:
+            if len(ciks) == 60:
                 break
 
     return ciks

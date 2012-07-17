@@ -30,7 +30,10 @@ def get_document_parsing_regexes():
         _a_letter_in_parentheses_followed_by_a_cap(), \
         _a_letter_in_parentheses(), \
         _a_letter_and_a_period(), \
+        _two_capital_letters(), \
+        _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions_followed_by_caps(), \
         _whitespace_followed_by_newline_and_a_few_words(), \
+        _words_composed_of_capital_letters_only(), \
     
 def _sections_start_with_an_uppercase_letter():
     return re.compile("((?<![A-Z.])\s[A-Z]\.\s*(?=[A-Z,\.\s:]+))", re.M | re.S)
@@ -40,6 +43,9 @@ def _note_sections_in_parentheses():
 
 def _sections_start_with_word_note_and_are_numbered_case_sensitive():
     return re.compile("((?<!\()NOTE(?!S)\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:)?)", re.M | re.S)
+
+def _sections_start_with_word_note_and_colon_and_are_numbered_case_sensitive():
+    return re.compile("((?<!\()NOTE(?!S)\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:))", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_numbered():
     return re.compile("((?<!\()Note(?!s)\s*[0-9]+(?![0-9,AB])(?!\s*[`'\"])(?:\s*:)?)", re.I | re.M | re.S)
@@ -57,7 +63,7 @@ def _sections_start_with_word_note_and_are_lettered_no_spaces_with_no_period():
     return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z](?![A-Za-z]))", re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered_no_spaces_with_no_period_relaxed_letter_check():
-    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z][A-Z])", re.M | re.S)
+    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z](?=[A-Z]))", re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
@@ -70,6 +76,9 @@ def _two_numbers_and_a_period_and_spaces_no_pre_numeric_restrictions():
 
 def _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions():
     return re.compile("((?<![M/])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
+
+def _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions_followed_by_caps():
+    return re.compile("((?<![M/])\s*[0-3]?[0-9]\s*(?:[A-Z]+))", re.M | re.S)
 
 def _two_numbers_and_no_period_with_no_spaces_with_capitals():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*(?=[A-Z]))", re.M | re.S)
@@ -89,6 +98,9 @@ def _a_letter_in_parentheses():
 def _a_letter_and_a_period():
     return re.compile("([E-Z]\s*\.(?!\s*[0-9]))", re.M)
 
+def _two_capital_letters():
+    return re.compile("([E-Z](?=C[oO][nNmM][tTmM]|L[iI][tT]|G[uU]|O[tT]))", re.M)
+
 def _two_numbers_and_a_period_no_spaces():
     return re.compile("((?<![M/0-9])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
 
@@ -100,6 +112,9 @@ def _two_numbers_and_no_period_with_spaces_with_capitals():
 
 def _whitespace_followed_by_newline_and_a_few_words():
     return re.compile("(\n^(?!ITEM)(?=(?:\w+\s){1,4}\s*\n))", re.I | re.M | re.S)
+
+def _words_composed_of_capital_letters_only():
+    return re.compile("(\s[A-Z]+\s)", re.M | re.S)
 
 def _two_numbers_and_a_parenthesis_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\)\.?(?!\s*[0-9]))", re.I | re.M | re.S)

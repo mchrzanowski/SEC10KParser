@@ -12,15 +12,18 @@ import Utilities
 def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location, hits):
     ''' check to make sure the last few words don't contain common words 
     that have numbers after them.'''
+
+    if re.search("Note(?!S)", hits[location - 1], re.I):
+        return False
     
     punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
     if re.match("ITEM|NOTE(?![0-9S])|Section|region|division|unit|units|and|^to$|Iatan", punctuated_tokens[-1], re.I):
-        print "MATCH ON:", punctuated_tokens[-1]
+        #print "MATCH ON:", punctuated_tokens[-1]
         return True
 
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     if re.search("(Units?|Region|USC)\s*[0-9]*$", last_sentence_fragment):
-        print "MATCH on end words with numbers attached.", last_sentence_fragment
+        #print "MATCH on end words with numbers attached.", last_sentence_fragment
         return True
     
     return False
