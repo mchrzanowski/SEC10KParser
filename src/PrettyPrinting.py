@@ -74,9 +74,13 @@ def _get_results(cik, start_year, end_year):
                     print "Exception: ", exception
                     traceback.print_exc()
 
-            if processed_data is None and result.processed_text is not None:        
-                CorpusAccess.write_processed_url_data_to_file(data=result.processed_text, CIK=result.CIK, filing_year=result.filing_year)
-        
+            if processed_data is None and result.processed_text is not None:  
+                try:      
+                    CorpusAccess.write_processed_url_data_to_file(data=result.processed_text, CIK=result.CIK, filing_year=result.filing_year)
+                except Exception as exception:
+                    print "Exception: ", exception
+                    traceback.print_exc()
+            
             results[year] = result
 
         except Exception as exception:
@@ -90,18 +94,22 @@ def _write_all_file(cik_path, results):
     with open(all_file, 'w') as f:
         for year in sorted(results):
             f.write("\n" + year + ":\n")
-            f.writelines(results[year].legal_proceeding_mention)
+            if results[year].legal_proceeding_mention is not None:
+                f.writelines(results[year].legal_proceeding_mention)
             f.write("\n\n")
-            f.writelines(results[year].legal_note_mentions)
+            if results[year].legal_note_mentions is not None:
+                f.writelines(results[year].legal_note_mentions)
             f.write("\n====================================================\n")
 
 def _write_year_files(path, results):
     for year in sorted(results):
         with_year = os.path.join(path, year + '.txt')
         with open(with_year, 'w') as f:
-            f.writelines(results[year].legal_proceeding_mention)
+            if results[year].legal_proceeding_mention is not None:
+                f.writelines(results[year].legal_proceeding_mention)
             f.write("\n\n")
-            f.writelines(results[year].legal_note_mentions)
+            if results[year].legal_note_mentions is not None:
+                f.writelines(results[year].legal_note_mentions)
 
 def _write_files_to_corpus(root_path, cik):
 
@@ -159,7 +167,7 @@ def _get_ciks_to_print():
     return ciks
 
 def main():
-    ciks = _get_ciks_to_print()
+    ciks = _go_through_corpus()
 
     print "CIKs:"
     for cik in ciks:

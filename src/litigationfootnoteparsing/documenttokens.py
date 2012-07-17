@@ -13,6 +13,8 @@ def get_document_parsing_regexes():
         _note_sections_in_parentheses(), \
         _sections_start_with_word_note_and_are_lettered(), \
         _sections_start_with_word_note_and_are_lettered_no_spaces_with_period(), \
+        _sections_start_with_word_note_and_are_lettered_no_spaces_with_no_period(), \
+        _sections_start_with_word_note_and_are_lettered_no_spaces_with_no_period_relaxed_letter_check(), \
         _two_numbers_and_a_period_and_spaces(),    \
         _sections_start_with_an_uppercase_letter(), \
         _two_numbers_and_a_backslash_and_spaces(), \
@@ -27,6 +29,7 @@ def get_document_parsing_regexes():
         _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions(), \
         _a_letter_in_parentheses_followed_by_a_cap(), \
         _a_letter_in_parentheses(), \
+        _a_letter_and_a_period(), \
         _whitespace_followed_by_newline_and_a_few_words(), \
     
 def _sections_start_with_an_uppercase_letter():
@@ -45,10 +48,16 @@ def _sections_start_with_word_note_and_are_numbered_more_freeform():
     return re.compile("((?<!\()Note(?!s)\s*[0-9]+(?![0-9,]))(?!\s*[`'\"])", re.I | re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered():
-    return re.compile("((?<!\()N[oO][tT][eE]\s+[A-Z])", re.M | re.S)
+    return re.compile("((?<!\()N[oO][tT][eE]\s+[A-Z](?![A-Za-z]))", re.M | re.S)
 
 def _sections_start_with_word_note_and_are_lettered_no_spaces_with_period():
     return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z]\.)", re.M | re.S)
+
+def _sections_start_with_word_note_and_are_lettered_no_spaces_with_no_period():
+    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z](?![A-Za-z]))", re.M | re.S)
+
+def _sections_start_with_word_note_and_are_lettered_no_spaces_with_no_period_relaxed_letter_check():
+    return re.compile("((?<!\()N[oO][tT][eE]\s*[A-Z][A-Z])", re.M | re.S)
 
 def _two_numbers_and_a_period_and_spaces():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
@@ -76,6 +85,9 @@ def _a_letter_in_parentheses_followed_by_a_cap():
 
 def _a_letter_in_parentheses():
     return re.compile("(\([E-Z]\)(?!\s*[0-9]))", re.M)
+
+def _a_letter_and_a_period():
+    return re.compile("([E-Z]\s*\.(?!\s*[0-9]))", re.M)
 
 def _two_numbers_and_a_period_no_spaces():
     return re.compile("((?<![M/0-9])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)

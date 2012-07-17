@@ -40,7 +40,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     
     #print "CHECKING TO SEE WHETHER PART OF ANOTHER SECTION:", hits[location]
 
-    #print "Fragment:", lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True)
+    #print "Fragment:", lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
     
     # if we are recording a section of the 10-K, and we have stumbled upon a section
     # that does not have lettering, then continue onwards.
@@ -66,6 +66,10 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
     
     if lfp.tokenvalidity.check_whether_token_numbers_are_near_each_other(location, hits, current_header_location):
         #print "MATCH ON numerical proximity"
+        return True
+
+    if lfp.tokenvalidity.does_previous_section_end_with_an_acronym(location, hits):
+        #print "match on acronym"
         return True
     
     # everything is contained in parentheses? probably OK.
@@ -98,6 +102,7 @@ def _check_whether_section_is_part_of_another_section(location, hits, current_he
         #print "matchon on common cut pattern"
         return True
    
+    #print "END"
     return False
 
 def _does_section_contain_verbs(words):
@@ -168,7 +173,7 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on admin agent"
         return False
     
-    if re.search("(Borrower|Guarantor|Licensee|Lender|Holder|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
+    if re.search("(Borrower|[^\"]Guarantor|Licensee|Lender|Holder|Execution\s*Date)[^a-zA-Z]", hits[location][:500]):
         #print "match on bgllhed"
         return False
 
@@ -184,6 +189,7 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on ste"
         return False
 
+    #print "HERE"
     return True
 
 def _does_section_mention_litigation(text):
@@ -211,7 +217,10 @@ def _set_up_recorder(location, hits):
 
 def _transform_list_of_hits_into_result(recorder, record_header):
     record = ''.join(recorder)
+
+    #print "original:", record
     record = _cut_text_if_needed(record)
+    #print "post:", record
     
     if re.search("SUBSEQUENT", record_header, re.I):
         if not _does_section_mention_litigation(record):

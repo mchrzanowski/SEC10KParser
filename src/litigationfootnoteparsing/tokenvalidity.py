@@ -14,12 +14,13 @@ def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location
     that have numbers after them.'''
     
     punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
-    if re.match("ITEM|NOTE(?![0-9S])|Section|region|division|unit|units", punctuated_tokens[-1], re.I):
+    if re.match("ITEM|NOTE(?![0-9S])|Section|region|division|unit|units|and|^to$|Iatan", punctuated_tokens[-1], re.I):
+        print "MATCH ON:", punctuated_tokens[-1]
         return True
 
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     if re.search("(Units?|Region|USC)\s*[0-9]*$", last_sentence_fragment):
-    #    #print "MATCH on end words with numbers attached."
+        print "MATCH on end words with numbers attached.", last_sentence_fragment
         return True
     
     return False
@@ -37,22 +38,24 @@ def are_there_more_left_parentheses_than_right_parentheses(location, hits):
 def does_previous_section_end_with_a_complete_parenthetical_block(location, hits):
     compressed_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     
-    if re.search("^\(.*\)$", compressed_fragment, flags=re.M | re.S):
+    if re.search("\(.*\)$", compressed_fragment, flags=re.M | re.S):
         #print 'MATCH on parens end'
         return True
     
     return False
 
 
-def does_previous_section_end_with_a_word_with_an_uncommon_capitalized_word(location, hits):
+def does_previous_section_end_with_an_acronym(location, hits):
 
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
 
     if last_sentence_fragment is None:
         return False
 
-    if re.match("^[A-Z][A-Za-z]+[./!]?$", last_sentence_fragment[-1]) and \
-    not re.search("Content|Exhibit|Note|Item", last_sentence_fragment[-1]):
+    if re.match("^[A-Z]+[./!]?$", last_sentence_fragment[-1]) \
+    and not re.search("US|SFAS|DC|NA|EU|NA|KK " +
+        "|CONTENT|EXHIBIT|NOTE|ITEM|STATEMENT|FINANCIAL|TO|CONTINUE|PROCEEDING|LEGAL", last_sentence_fragment[-1]) \
+    and len(last_sentence_fragment[-1]) <= 4:
         return True
 
     return False
@@ -66,7 +69,10 @@ def does_last_section_end_with_note(location, hits):
 
     if re.search("Note", last_sentence_fragment[-1], re.I):
         return True
-    
+
+    if len(last_sentence_fragment) > 1 and re.search("Note", last_sentence_fragment[-2], re.I):
+        return True
+
     return False
 
 def check_whether_previous_section_ended_with_note_when_the_tokenization_uses_note(location, hits):
@@ -137,16 +143,14 @@ def does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pat
         # found special word. this is not a complete sentence.
         # these special words are here because there are all sorts of garbage sections
         # that have verbs but are actually the text from graphs and charts.
-        if re.search("see|under|SUMMARIZEd|includ(ed|ing)|DISCUSS|REFER|describe|disclose|fined|violate|approve|further", word, re.I): 
+        if re.search("see|under|SUMMARIZEd|includ(ed|ing)|DISCUSS|REFER|indicated|describe|disclose|fined|violate|approve|further", word, re.I): 
             #print "MATCH:", word
             return True
     
     return False
 
 def was_cut_within_a_table(location, hits):
-    
-    #if does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
-        
+            
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
     
     if last_sentence_fragment is None:

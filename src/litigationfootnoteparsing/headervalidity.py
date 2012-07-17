@@ -54,11 +54,13 @@ def check_whether_header_is_valuable(location, hits):
     
     for regex in lfp.headerpatternrepository.get_patterns_of_headers_we_dont_want():
         if re.search(regex, compressed_header):
+            #print "MATCH ON BAD REGEX"
             return False
     
     # we only want subsequent event headers; nothing more.
     if re.search("S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]", compressed_header) \
     and not re.search("Subsequent.*?Event", compressed_header, re.I):
+        #print "match on sub"
         return False
     
     # first words are never numbers.
