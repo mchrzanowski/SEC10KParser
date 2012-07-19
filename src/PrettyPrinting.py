@@ -4,6 +4,7 @@ Created on Jul 16, 2012
 @author: mchrzanowski
 '''
 
+import argparse
 import CorpusAccess
 import Constants
 import Litigation10KParsing
@@ -138,7 +139,7 @@ def pretty_print(ciks):
         os.makedirs(Constants.PATH_TO_DROPBOX_DIRECTORY)
 
     
-    pool = multiprocessing.Pool(maxtasksperchild=2)
+    pool = multiprocessing.Pool(maxtasksperchild=1)
 
     for cik in ciks:
         pool.apply_async(_write_files_to_corpus, args=(Constants.PATH_TO_DROPBOX_DIRECTORY, cik))
@@ -157,20 +158,24 @@ def _go_through_corpus():
             
     return ciks
 
-def _get_ciks_to_print():
+def _get_ciks_to_print(run_for_new):
     ciks = set()
     with open("../etc/cik_mike_5june2012.csv") as f:
         for line in f:
             line = line.strip()
             if re.match("^0", line):
                 ciks.add(line)
-            if len(ciks) == 60:
+            if len(ciks) == run_for_new:
                 break
 
     return ciks
 
-def main():
-    ciks = _go_through_corpus()
+def main(run_for_old, run_for_new):
+
+    if run_for_old:
+        ciks = _go_through_corpus()
+    else:
+        ciks = _get_ciks_to_print(run_for_new)
 
     print "CIKs:"
     for cik in ciks:
@@ -179,4 +184,9 @@ def main():
     pretty_print(ciks)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description='A script that compares the output from the parsing engine against what is expected.')
+    parser.add_argument('-old', action='store_true', help="run through the corpus, updating the pretty printed output")
+    parser.add_argument('-new', type=int, help="run for new CIKs. pass a number in")
+    args = vars(parser.parse_args())
+
+    main(args['old'], args['new'])

@@ -17,13 +17,16 @@ def does_previous_section_end_with_a_common_word_that_preceeds_a_number(location
         return False
     
     punctuated_tokens = lfp.wordtokencreation.punctuate_prior_section(location, hits)
-    if re.match("ITEM|NOTE(?![0-9S])|Section|region|division|unit|units|and|^to$|Iatan", punctuated_tokens[-1], re.I):
+    if re.match("ITEM|NOTE(?![0-9S])|Section|region|division|unit|units|and|^to$|Iatan|Track", punctuated_tokens[-1], re.I):
         #print "MATCH ON:", punctuated_tokens[-1]
         return True
 
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits, return_as_string=True) 
     if re.search("(Units?|Region|USC)\s*[0-9]*$", last_sentence_fragment):
         #print "MATCH on end words with numbers attached.", last_sentence_fragment
+        return True
+
+    if re.search("January|February|March|April|May|June|July|August|September|Octover|November|December", last_sentence_fragment, re.I):
         return True
     
     return False
@@ -70,11 +73,11 @@ def does_last_section_end_with_note(location, hits):
     if last_sentence_fragment is None:
         return False
 
-    if re.search("Note", last_sentence_fragment[-1], re.I):
-        return True
+    for i in xrange(1, 5 + 1):
 
-    if len(last_sentence_fragment) > 1 and re.search("Note", last_sentence_fragment[-2], re.I):
-        return True
+        if len(last_sentence_fragment) >= i and re.search("N[oO][tT][eE](?![sS])", last_sentence_fragment[-i]):
+            #print "HERE"
+            return True
 
     return False
 
@@ -136,8 +139,10 @@ def did_last_section_end_with_punct_mark(location, hits):
 
 def does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pattern(location, hits):
     
+    #if was_cut_within_a_table(location, hits):
+
     last_sentence_fragment = lfp.wordtokencreation.get_last_sentence_fragment(location, hits)
-    
+
     if last_sentence_fragment is None:
         return False
     
@@ -146,9 +151,10 @@ def does_last_sentence_of_preceeding_section_end_on_a_commonly_incorrect_cut_pat
         # found special word. this is not a complete sentence.
         # these special words are here because there are all sorts of garbage sections
         # that have verbs but are actually the text from graphs and charts.
-        if re.search("see|under|SUMMARIZEd|includ(ed|ing)|DISCUSS|REFER|indicated|describe|disclose|fined|violate|approve|further", word, re.I): 
-            #print "MATCH:", word
-            return True
+        if re.search("^see|under|SUMMARIZEd|includ(ed|ing)|^DISCUSS|^REFER|" + \
+            "^indicated|^describe|^disclose|^fined|^violate|^approve|^further", word, re.I): 
+                #print "MATCH:", word
+                return True
     
     return False
 

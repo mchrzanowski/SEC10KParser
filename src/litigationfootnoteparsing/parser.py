@@ -202,6 +202,9 @@ def _check_whether_chunk_is_new_section(location, hits, current_token_location):
         #print "match on p"
         return False
 
+    if re.search("\.", hits[location][:50], re.I):
+        return False
+
     if re.search("LEGAL\s*PROCEEDING", hits[location][:500]) and re.search("3", hits[location - 1]) \
     and (re.search("Item", hits[location - 1], re.I) or re.search("Item", hits[location - 2][-100:], re.I)):
         #print "LP"
@@ -310,7 +313,6 @@ def _get_all_viable_hits(text):
                 results[record_header].append(record + '\n\n')
                 
         if _are_results_from_this_regex_split_acceptable(results):
-            # one type of regex is used. only one. notes don't take on different formats within the 10-K.
             break           
 
     return ''.join(''.join(results[key]) + '\n\n' for key in results)

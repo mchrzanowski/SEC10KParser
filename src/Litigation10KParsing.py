@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from HTMLTagStripper import HTMLTagStripper
 
 import Constants
+import CorpusAccess
 import LegalProceedingParsing
 import litigationfootnoteparsing.parser
 import lxml.html.clean
@@ -93,7 +94,8 @@ def _get_litigaton_mentions(result, get_legal_proceeding_only, get_litigation_fo
         result.legal_note_mentions = legal_oriented_notes
     
 
-def parse(CIK, filing_year, company_name=None, processed_website_data=None, get_legal_proceeding_only=False, get_litigation_footnotes_only=False):
+def parse(CIK, filing_year, company_name=None, raw_website_data=None, \
+    processed_website_data=None, get_legal_proceeding_only=False, get_litigation_footnotes_only=False):
     
     results = ParsingResults(CIK, filing_year, company_name, processed_text=processed_website_data)
     
@@ -101,14 +103,22 @@ def parse(CIK, filing_year, company_name=None, processed_website_data=None, get_
         results.company_name = get_name_of_company_from_cik(results.CIK)
     
     if results.processed_text is None:
-        url = get_10k_url(CIK=results.CIK, filing_year=results.filing_year)
+
+        if raw_website_data is None:
+
+            url = get_10k_url(CIK=results.CIK, filing_year=results.filing_year)
         
-        if url is not None:
-            response = urllib2.urlopen(url).read()
-            results.processed_text = convert_html_into_clean_text(response)                    
+            if url is not None:
+                response = urllib2.urlopen(url).read()
+                CorpusAccess.write_raw_url_data_to_file(response, results.CIK, results.filing_year)
+            else:
+                raise Exception("Error: No URL to parse for data.")
+
         else:
-            raise Exception("Error: No URL to parse for data.")
-    
+            response = raw_website_data
+
+        results.processed_text = convert_html_into_clean_text(response)                    
+
     _get_litigaton_mentions(results, get_legal_proceeding_only, get_litigation_footnotes_only)
     
     return results

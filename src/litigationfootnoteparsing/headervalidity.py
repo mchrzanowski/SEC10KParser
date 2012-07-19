@@ -47,8 +47,8 @@ def check_whether_header_is_valuable(location, hits):
     #print header
     #print compressed_header
     
-    if re.search("Debt|Other|Environmental", compressed_header, re.I) and \
-    not re.search("Litigation|Contingenc|Commitment|Proceeding|" + \
+    if re.search("Debt|Other|Environmental|Proceeding", compressed_header, re.I) and \
+    not re.search("Litigation|Contingenc|Commitment|" + \
                       "Contigencies|Legal|Subsequent", compressed_header, re.I):
         return False
     

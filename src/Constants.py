@@ -25,6 +25,8 @@ PATH_TO_FAILED_UNIT_TESTS = './failed_tests/'
 
 PATH_TO_DROPBOX_DIRECTORY = "/home/polak/Dropbox/Corporate Litigation Research/Edgar Corpus/"
 
+PATH_TO_RAW_URL_DATA = '/home/polak/raw_data_corpus/'
+
 PATH_TO_PROCESSED_URL_DATA = '/home/polak/processed_data_corpus/'
 
 PATH_TO_VERB_FILE = os.path.join(os.curdir, '../etc/common_verbs.txt')

@@ -16,8 +16,9 @@ def get_pattern_of_headers_we_want():
         "L[eE][gG][aA][lL]|" +
         "S[uU][bB][sS][eE][qQ][uU][eE][nN][tT]|" + \
         "O[tT][hH][eE][rR]|" + \
-        "E[nN][vV][iI][rR][oO][nN][mM][eE][nN][tT]")
-
+        "E[nN][vV][iI][rR][oO][nN][mM][eE][nN][tT]|" + \
+        "L[aA][wW][sS][uU][iI][tT]")
+    
 def get_patterns_of_headers_we_dont_want():
     ''' a list of patterns for headers we're not interested in '''
     return [re.compile("LEASE\s*COMMITMENT",  re.I | re.M),   \
@@ -30,7 +31,10 @@ def get_patterns_of_headers_we_dont_want():
         re.compile("primarily", re.I), \
         re.compile("Performance\s*Contingenc", re.I | re.M), \
         re.compile("Revolving\s*Credit", re.I | re.M), \
-        re.compile("Credit\s*Commitment", re.I | re.M) ]
+        re.compile("Credit\s*Commitment", re.I | re.M), \
+        re.compile("Accrued\s*Expenses", re.I | re.M), \
+        re.compile("Commitments\s*to\s*", re.I | re.M), \
+        re.compile("Investments", re.I | re.M) ]
 
 def get_legitimate_headers():
     ''' a list of patterns of common headers '''
@@ -92,5 +96,7 @@ def get_legitimate_headers():
         re.compile("Financial\s*Statement", re.I | re.M), \
         re.compile("Warranty\s*Obligations", re.I | re.M), \
         re.compile("Major\s*Group", re.I | re.M), \
-        re.compile("Capital\s*Stock", re.I | re.M) ]
+        re.compile("Capital\s*Stock", re.I | re.M), \
+        re.compile("Lawsuits", re.I), \
+        re.compile("Claims", re.I) ]
         

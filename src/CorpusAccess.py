@@ -115,6 +115,20 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
         f.write("NEW:\n")
         f.writelines(new_output)
 
+def write_raw_url_data_to_file(data, CIK, filing_year):
+    CIK = Utilities.format_CIK(CIK)
+    
+    path = os.path.join(Constants.PATH_TO_RAW_URL_DATA, CIK) 
+    
+    if not os.path.exists(path): 
+        os.mkdir(path)
+    
+    path_with_file = os.path.join(path, filing_year + ".txt")
+    
+    if not os.path.exists(path_with_file):
+        with open(path_with_file, 'w') as f:
+            f.writelines(data)
+
 def write_processed_url_data_to_file(data, CIK, filing_year):
     
     CIK = Utilities.format_CIK(CIK)
