@@ -39,8 +39,8 @@ def _edit_text_to_remove_periods(text):
     
     # deal with decimal numbers. do this one several time as sometimes, the whitespace is so bad
     # that the numbers run into each other. each pass removes a few of the decimal points.
-    for _ in xrange(5):
-        text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
+    #for _ in xrange(5):
+    #    text = re.sub("(?P<before>[0-9]+)\.(?P<after>[0-9]+)", "\g<before>\g<after>", text, flags=re.I | re.M | re.S)
     
     # names with middle initials
     text = re.sub("(?P<before>[A-Z](?!ote)[a-z]+) +[A-Z]\.\s+(?P<after>[A-Z](?!ote)[a-z]+)", "\g<before>\g<after>", text, flags=re.M | re.S)
@@ -48,8 +48,11 @@ def _edit_text_to_remove_periods(text):
     # common abbreviations with periods.
     text = re.sub("(?P<before>SFAS\s*[0-9]+\s*)\.", "\g<before>", text, flags=re.M) 
 
+
     text = re.sub("U\s*\.\s*S\.\s*C\.", "USC", text, flags=re.I | re.M | re.S)
     text = re.sub("B\.\s*S\.\s*C\.", " BSC ", text, flags=re.I | re.M | re.S)
+    text = re.sub("S\s*\.\s*E\.\s*C\.", "SEC", text, flags=re.I | re.M | re.S)
+    text = re.sub("I\s*\.\s*R\.\s*S\.", "IRS", text, flags=re.I | re.M | re.S)
 
     text = re.sub("U\s*\.\s*S\.", "US", text, flags=re.I | re.M | re.S)
     text = re.sub("D\s*\.\s*C\.", "DC", text, flags=re.I | re.M | re.S)

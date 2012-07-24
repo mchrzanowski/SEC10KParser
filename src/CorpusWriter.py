@@ -12,7 +12,7 @@ import Utilities
 
 def main():
     
-    CIK = Utilities.format_CIK('0000749251')
+    CIK = Utilities.format_CIK('0000859475')
     
     for year in xrange(2004, 2012 + 1):
                 

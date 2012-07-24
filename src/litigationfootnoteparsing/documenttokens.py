@@ -90,7 +90,7 @@ def _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions():
     return re.compile("((?<![M/])\s*[0-3]?[0-9]\s*\.(?!\s*[0-9]))", re.I | re.M | re.S)
 
 def _two_numbers_and_a_period_no_spaces_no_pre_numeric_restrictions_followed_by_caps():
-    return re.compile("((?<![M/])\s*[0-3]?[0-9]\s*(?:[A-Z]+))", re.M | re.S)
+    return re.compile("((?<![M/])\s*[0-3]?[0-9]\s*(?=[A-Z]+))", re.M | re.S)
 
 def _two_numbers_and_no_period_with_no_spaces_with_capitals():
     return re.compile("((?<![M/0-9])\s+[0-3]?[0-9]\s*(?=[A-Z]))", re.M | re.S)
