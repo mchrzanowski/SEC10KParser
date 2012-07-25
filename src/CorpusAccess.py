@@ -11,6 +11,18 @@ import re
 import shutil
 import Utilities
 
+
+def get_CIK_from_corpus(company_name):
+    
+    if os.path.exists(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):
+        with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'r') as f:
+            for line in f:
+                data = re.split(Constants.COMPANY_NAME_AND_CIK_MAPPING_FILE_DELIMITER, line)
+                if len(data) != 2:
+                    continue
+                if data[1] == company_name:
+                    return data[0]
+
 def get_company_name_from_corpus(CIK):
     
     CIK = Utilities.format_CIK(CIK)
@@ -22,7 +34,6 @@ def get_company_name_from_corpus(CIK):
                     continue
                 if data[0] == CIK:
                     return data[1]
-    return None
 
 def write_company_name_and_cik_mapping_to_corpus(CIK, company_name):
     
@@ -73,6 +84,7 @@ def access_every_file_in_legal_proceeding_corpus():
 def get_processed_website_data_from_corpus(CIK, filing_year):
     
     CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
        
     candidate_path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK, str(filing_year) + ".txt")
     
@@ -117,6 +129,7 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
 
 def write_raw_url_data_to_file(data, CIK, filing_year):
     CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
     
     path = os.path.join(Constants.PATH_TO_RAW_URL_DATA, CIK) 
     
@@ -129,9 +142,22 @@ def write_raw_url_data_to_file(data, CIK, filing_year):
         with open(path_with_file, 'w') as f:
             f.writelines(data)
 
+def get_raw_website_data_from_corpus(CIK, filing_year):
+    
+    CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
+    
+    candidate_path = os.path.join(Constants.PATH_TO_RAW_URL_DATA, CIK, str(filing_year) + ".txt")
+    
+    if os.path.exists(candidate_path):
+        with open(candidate_path, 'rb') as f:
+            return f.read()
+    
+
 def write_processed_url_data_to_file(data, CIK, filing_year):
     
     CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
     
     path = os.path.join(Constants.PATH_TO_PROCESSED_URL_DATA, CIK) 
     
@@ -143,7 +169,7 @@ def write_processed_url_data_to_file(data, CIK, filing_year):
     if not os.path.exists(path_with_file):
         with open(path_with_file, 'w') as f:
             f.writelines(data)
-            
+          
             
 def write_data_to_corpus(data, CIK, filing_year, path):
     
@@ -151,6 +177,7 @@ def write_data_to_corpus(data, CIK, filing_year, path):
         raise Exception("Nothing to write!")
                     
     CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -172,6 +199,7 @@ def write_to_litigation_footnote_corpus(data, CIK, filing_year):
     and so on. 
     '''
     CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
     
     path = os.path.join(Constants.PATH_TO_LEGAL_FOOTNOTE_CORPUS, CIK)
     write_data_to_corpus(data, CIK, filing_year, path)
@@ -187,6 +215,7 @@ def write_to_legal_proceeding_corpus(data, CIK, filing_year):
     and so on. 
     '''
     CIK = Utilities.format_CIK(CIK)
+    filing_year = Utilities.sanitize_filing_year(filing_year)
     
     path = os.path.join(Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS, CIK)
     write_data_to_corpus(data, CIK, filing_year, path)

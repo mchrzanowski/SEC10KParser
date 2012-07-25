@@ -40,3 +40,15 @@ def character_counter(data, *chars):
                results[char_arg] += 1
             
     return results
+
+def sanitize_filing_year(year):
+    year = str(year)
+    if len(year) == 2:
+        if year < '50':
+            year = '19' + year
+        else:
+            year = '20' + year
+    if len(year) == 1:
+        year = '200' + year
+         
+    return year

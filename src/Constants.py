@@ -31,6 +31,10 @@ PATH_TO_PROCESSED_URL_DATA = '/home/polak/processed_data_corpus/'
 
 PATH_TO_VERB_FILE = os.path.join(os.curdir, '../etc/common_verbs.txt')
 
+PATH_TO_LITIGATION_FILE = os.path.join(os.curdir, '../etc/case_parties.csv')
+
+PATH_TO_NEW_LITIGATION_FILE = os.path.join(os.curdir, '../etc/case_parties_output.csv')
+
 SEC_WEBSITE = "http://www.sec.gov/"
 
 REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD = 0.1
