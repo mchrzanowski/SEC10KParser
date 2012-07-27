@@ -79,48 +79,28 @@ def _get_first_word_of_case_name(case_name):
     first_word = re.split("\s+", case_name)[0]
 
     # remove commas
-    first_word = re.sub(",", "", first_word)
+    pattern = re.sub(",", "", first_word)
 
     # remove whitespace
-    first_word = first_word.strip()
+    pattern = pattern.strip()
 
     # sub periods for a period pattern
-    first_word = re.sub("\.", "\.?", first_word)
+    pattern = re.sub("\.", "\.?", pattern)
 
     # sub apostrophes
-    first_word = re.sub("'", "'?", first_word)
+    pattern = re.sub("'", "'?", pattern)
 
     # add borders. space the special chars out
     # so that they don't become backspaces.
-    first_word = '\\' + 'b' + first_word + '\\' + 'b'
+    pattern = '\\' + 'b' + pattern + '\\' + 'b'
 
-    return re.compile(first_word, flags=re.I)
-
-'''def _turn_case_name_into_regex(case_name):
-
-    # strip the defendant out.
-    case_name = re.sub("v\..*", "", case_name)
-
-
-    # convert common abbreviations into regex patterns
-    # that allow for periods
-    case_name = re.sub("L\.?L\.?C\.?", "L\.?L\.?C\.?", case_name)
-    case_name = re.sub("INC\.?", "INC\.?", case_name)
-    case_name = re.sub("Ltd\.?", "Ltd\.?", case_name, flags=re.I)
-    case_name = re.sub("Corp\.?[^A-Za-z]", "Corp\.?", case_name, flags=re.I)
-    case_name = re.sub("Co\.?[^A-Za-z]", "Co\.?", case_name, flags=re.I)
-
-    # remove commas
-    #case_name = re.sub(",", "", case_name)
-
-    # remove unneccessary spacing.
-    case_name = case_name.strip()  
-
-    # turn spaces into a regex whitespace matcher pattern
-    pattern = re.sub("\.|,|\s+", "[.,\s]*", case_name)
-
-    return re.compile(pattern, flags=re.I | re.M)
-'''
+    # if we got a case name that isn't all in caps,
+    # then we assume that 10-Ks preserve the correct
+    # casing. Otherwise, do an ignore-case match.
+    if first_word.isupper():
+        return re.compile(pattern, flags=re.I)
+    else:
+        return re.compile(pattern)
 
 def _read_ouput_file_and_get_finished_indices():
     reader = csv.reader(open(Constants.PATH_TO_NEW_LITIGATION_FILE, 'rb'), delimiter=',')
@@ -181,7 +161,7 @@ def main(items_to_add):
 
         case_pattern = _get_first_word_of_case_name(original_case_name)
 
-        #_perform_check_and_write_to_results_file(case_pattern, index, CIK, original_case_name, row)
+        #_perform_check_and_write_to_results_file(case_pattern, index, CIK, original_case_name, row, row_holder)
 
         pool.apply_async(_perform_check_and_write_to_results_file, \
             args=(case_pattern, index, CIK, original_case_name, row, row_holder))
