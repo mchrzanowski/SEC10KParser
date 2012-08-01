@@ -15,7 +15,6 @@ import time
 import urllib2
 import Utilities
 
-_mutex = multiprocessing.Lock()
 _name_to_cik_mapping = multiprocessing.Manager().dict()
 
 def _get_potential_cik_from_company_name(plaintiff):
