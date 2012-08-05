@@ -6,11 +6,11 @@ Created on Jun 8, 2012
 
 import Constants
 import lockfile
+import multiprocessing
 import os.path
 import re
 import shutil
 import Utilities
-
 
 def get_CIK_from_corpus(company_name):
     
@@ -127,20 +127,25 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
         f.write("NEW:\n")
         f.writelines(new_output)
 
+_raw_data_writing_mutex = multiprocessing.Lock()
 def write_raw_url_data_to_file(data, CIK, filing_year):
     CIK = Utilities.format_CIK(CIK)
     filing_year = Utilities.sanitize_filing_year(filing_year)
     
     path = os.path.join(Constants.PATH_TO_RAW_URL_DATA, CIK) 
     
+    _raw_data_writing_mutex.acquire()
+
     if not os.path.exists(path): 
         os.mkdir(path)
     
     path_with_file = os.path.join(path, filing_year + ".txt")
-    
+
     if not os.path.exists(path_with_file):
         with open(path_with_file, 'w') as f:
             f.writelines(data)
+
+    _raw_data_writing_mutex.release()
 
 def get_raw_website_data_from_corpus(CIK, filing_year):
     

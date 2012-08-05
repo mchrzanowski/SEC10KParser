@@ -17,6 +17,8 @@ import Utilities
 
 _name_to_cik_mapping = multiprocessing.Manager().dict()
 
+_corpus_access_mutex = multiprocessing.Lock()
+
 def _get_potential_cik_from_company_name(plaintiff):
 
     CIK = ''
@@ -44,8 +46,10 @@ def _perform_check_and_write_to_results_file(case_pattern, index, CIK, original_
 
     for year in xrange(2004, 2012 + 1):
 
-        raw_data = None
-        key = (CIK, year)
+        # maintain exclusive zone when acquiring raw data.
+        # this section of the code could, based on OS scheduling, easily
+        # lead to multiple download attempts of the same data.
+        _corpus_access_mutex.acquire()
 
         raw_data = CorpusAccess.get_raw_website_data_from_corpus(CIK=CIK, filing_year=year)
 
@@ -53,10 +57,10 @@ def _perform_check_and_write_to_results_file(case_pattern, index, CIK, original_
             url = edgar.get_10k_url(CIK=CIK, filing_year=year)
         
             if url is not None:
-                raw_data = urllib2.urlopen(url).read()
+                raw_data = urllib2.urlopen(url, timeout=72000).read()
                 CorpusAccess.write_raw_url_data_to_file(raw_data, CIK=CIK, filing_year=year)
-            #else:
-            #    print "Error: No 10-K for CIK %s for year %d" % (CIK, year)
+
+        _corpus_access_mutex.release()
 
         if raw_data is not None:
             if re.search(case_pattern, raw_data):
@@ -75,7 +79,19 @@ def _perform_check_and_write_to_results_file(case_pattern, index, CIK, original_
 
 def _get_first_word_of_case_name(case_name):
 
-    first_word = re.split("\s+", case_name)[0]
+    first_word = ""
+    for potential in re.split("\s+", case_name):
+        # pass the blacklist of common words
+        # I don't care about.
+        if re.match("\ba\b", potential, re.I):
+            continue
+        if re.match("\ban\b", potential, re.I):
+            continue
+        if re.match("\bthe\b", potential, re.I):
+            continue
+
+        first_word = potential
+        break
 
     # remove commas
     pattern = re.sub(",", "", first_word)
@@ -85,6 +101,10 @@ def _get_first_word_of_case_name(case_name):
 
     # sub periods for a period pattern
     pattern = re.sub("\.", "\.?", pattern)
+
+    # sub parentheses.
+    pattern = re.sub("\(", "\(?", pattern)
+    pattern = re.sub("\)", "\)?", pattern)
 
     # sub apostrophes
     pattern = re.sub("'", "'?", pattern)
