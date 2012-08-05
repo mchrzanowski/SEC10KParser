@@ -37,6 +37,30 @@ def _get_potential_cik_from_company_name(plaintiff):
     return CIK
 
 
+def _get_raw_data(CIK, year):
+    ''' 
+        process-safe way of accessing a given 10-K as indexed
+        by CIK and filing year. method will store the data to disk
+        if it's not already there 
+    '''
+    # maintain exclusive zone when acquiring raw data.
+    # this section of the code could, based on OS scheduling, easily
+    # lead to multiple download attempts of the same data.
+    _corpus_access_mutex.acquire()
+
+    raw_data = CorpusAccess.get_raw_website_data_from_corpus(CIK=CIK, filing_year=year)
+
+    if raw_data is None:
+        url = edgar.get_10k_url(CIK=CIK, filing_year=year)
+    
+        if url is not None:
+            raw_data = urllib2.urlopen(url, timeout=72000).read()
+            CorpusAccess.write_raw_url_data_to_file(raw_data, CIK=CIK, filing_year=year)
+
+    _corpus_access_mutex.release()
+
+    return raw_data
+
 def _perform_check_and_write_to_results_file(case_pattern, index, CIK, original_case_name, original_row, row_holder):
 
     print "Start:", index, CIK, case_pattern.pattern, original_case_name
@@ -46,21 +70,7 @@ def _perform_check_and_write_to_results_file(case_pattern, index, CIK, original_
 
     for year in xrange(2004, 2012 + 1):
 
-        # maintain exclusive zone when acquiring raw data.
-        # this section of the code could, based on OS scheduling, easily
-        # lead to multiple download attempts of the same data.
-        _corpus_access_mutex.acquire()
-
-        raw_data = CorpusAccess.get_raw_website_data_from_corpus(CIK=CIK, filing_year=year)
-
-        if raw_data is None:
-            url = edgar.get_10k_url(CIK=CIK, filing_year=year)
-        
-            if url is not None:
-                raw_data = urllib2.urlopen(url, timeout=72000).read()
-                CorpusAccess.write_raw_url_data_to_file(raw_data, CIK=CIK, filing_year=year)
-
-        _corpus_access_mutex.release()
+        raw_data = _get_raw_data(CIK, year)
 
         if raw_data is not None:
             if re.search(case_pattern, raw_data):
