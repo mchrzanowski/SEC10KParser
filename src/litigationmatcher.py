@@ -93,7 +93,7 @@ def _get_first_word_of_case_name(case_name):
     for potential in re.split("\s+", case_name):
         # pass the blacklist of common words
         # I don't care about.
-        
+
         potential_lc = potential.lower()
         if potential_lc == 'a':
             continue
@@ -173,7 +173,7 @@ def main(items_to_add):
         CIK = Utilities.format_CIK(original_cik)
 
         # rows always have a plaintiff but not always a CIK.
-        if len(CIK) > 0:
+        if int(CIK) > 0:
             # if this row has the CIK-company name mapping, cache it.
             # update the key-value pairing with each row iteration
             # as company CIKSs can change as time goes on.
@@ -186,8 +186,8 @@ def main(items_to_add):
             # potential CIK.
             CIK = _get_potential_cik_from_company_name(plaintiff)
 
-        if CIK is None or len(CIK) == 0:
-            print "Error: No CIK. Row:", row
+        if len(CIK) == 0 or int(CIK) == 0:
+            print "Error: No CIK. Index:", index
             continue
 
         case_pattern = _get_first_word_of_case_name(original_case_name)
