@@ -61,16 +61,16 @@ def _get_raw_data(CIK, year):
 
     return raw_data
 
-def _perform_check_and_write_to_results_file(case_pattern, index, CIK, original_case_name, original_row, row_holder):
+def _perform_check_and_write_to_results_file(case_pattern, row, row_holder):
 
-    print "Start:", index, CIK, case_pattern.pattern, original_case_name
+    print "Start:", row.index, row.CIK, case_pattern.pattern, row.case_name
 
-    new_row = list(original_row)
+    new_row = list(row.order_fields())
     hits = set()
 
     for year in xrange(2004, 2012 + 1):
 
-        raw_data = _get_raw_data(CIK, year)
+        raw_data = _get_raw_data(row.CIK, year)
 
         if raw_data is not None:
             if re.search(case_pattern, raw_data):
@@ -91,6 +91,7 @@ def _get_first_word_of_case_name(case_name):
 
     first_word = ""
     for potential in re.split("\s+", case_name):
+        
         # pass the blacklist of common words
         # I don't care about.
 
@@ -134,13 +135,22 @@ def _get_first_word_of_case_name(case_name):
         return re.compile(pattern)
 
 def _read_ouput_file_and_get_finished_indices():
+    ''' 
+        read the output file and see which indices exist in there. those are the finished rows.
+        also read the rows for the already-learned CIK/plaintiff mapping 
+    '''
     reader = csv.reader(open(Constants.PATH_TO_NEW_LITIGATION_FILE, 'rb'), delimiter=',')
 
     results = set()
 
     for row in reader:
         index = row[0]
+        CIK = row[2]
+        plaintiff = row[3]
+
         results.add(index)
+        if len(CIK) > 0:
+            _name_to_cik_mapping[plaintiff] = CIK
 
     return results
 
@@ -160,9 +170,9 @@ def main(items_to_add):
 
     for row in litigationReader:
         
-        index, _, original_cik, plaintiff, original_case_name = row
+        row_object = Row(*row)
 
-        if index in finished_indices:
+        if row_object.index in finished_indices:
             continue
         else:
             processed_index_counter += 1
@@ -170,32 +180,30 @@ def main(items_to_add):
         if processed_index_counter > items_to_add:
             break
 
-        CIK = Utilities.format_CIK(original_cik)
-
         # rows always have a plaintiff but not always a CIK.
-        if int(CIK) > 0:
+        if int(row_object.CIK) > 0:
             # if this row has the CIK-company name mapping, cache it.
             # update the key-value pairing with each row iteration
             # as company CIKSs can change as time goes on.
-            if len(plaintiff) > 0:
-                _name_to_cik_mapping[plaintiff] = CIK        
+            if len(row_object.plaintiff) > 0:
+                _name_to_cik_mapping[row_object.plaintiff] = row_object.CIK        
         
         else:
             # this row didnt have a CIK. first, check previous rows for the mapping we want.
             # if that doesn't exist, use the company name and edgar to get the 
             # potential CIK.
-            CIK = _get_potential_cik_from_company_name(plaintiff)
+            row_object.CIK = _get_potential_cik_from_company_name(row_object.plaintiff)
 
-        if len(CIK) == 0 or int(CIK) == 0:
-            print "Error: No CIK. Index:", index
+        if len(row_object.CIK) == 0 or int(row_object.CIK) == 0:
+            print "Error: No CIK. Index:", row_object.index
             continue
 
-        case_pattern = _get_first_word_of_case_name(original_case_name)
+        case_pattern = _get_first_word_of_case_name(row_object.case_name)
 
         #_perform_check_and_write_to_results_file(case_pattern, index, CIK, original_case_name, row, row_holder)
 
         pool.apply_async(_perform_check_and_write_to_results_file, \
-            args=(case_pattern, index, CIK, original_case_name, row, row_holder))
+            args=(case_pattern, row_object, row_holder))
 
     pool.close()
     pool.join()
@@ -203,6 +211,20 @@ def main(items_to_add):
     litigationWriter = csv.writer(open(Constants.PATH_TO_NEW_LITIGATION_FILE, 'ab'), delimiter=',')
     for row in row_holder:
         litigationWriter.writerow(row)
+
+
+class Row(object):
+
+    def __init__(self, index, date_field, CIK, plaintiff, case_name):
+        self.index = index
+        self.CIK = Utilities.format_CIK(CIK)
+        self.date_field = date_field
+        self.plaintiff = plaintiff
+        self.case_name = case_name
+
+    def order_fields(self):
+        ''' return a list of the fields of this row in the order that they should've been read from the csv file '''
+        return self.index, self.date_field, self.CIK, self.plaintiff, self.case_name
 
 if __name__ == '__main__':
     start = time.time()
