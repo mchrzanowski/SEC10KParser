@@ -93,11 +93,13 @@ def _get_first_word_of_case_name(case_name):
     for potential in re.split("\s+", case_name):
         # pass the blacklist of common words
         # I don't care about.
-        if re.match("\ba\b", potential, re.I):
+        
+        potential_lc = potential.lower()
+        if potential_lc == 'a':
             continue
-        if re.match("\ban\b", potential, re.I):
+        if potential_lc == 'an':
             continue
-        if re.match("\bthe\b", potential, re.I):
+        if potential_lc == 'the':
             continue
 
         first_word = potential
