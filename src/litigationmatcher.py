@@ -20,8 +20,9 @@ _name_to_cik_mapping = multiprocessing.Manager().dict()
 _corpus_access_mutex = multiprocessing.Lock()
 
 def _get_potential_cik_from_company_name(plaintiff):
+    ''' try matching a company name to its CIK. there are several approaches to this. '''
 
-    CIK = ''
+    CIK = None
 
     # first, try to fish the CIK from previously-observed mappings.
     if plaintiff in _name_to_cik_mapping:
@@ -65,29 +66,22 @@ def _perform_check_and_write_to_results_file(case_pattern, row, row_holder):
 
     print "Start:", row.index, row.CIK, case_pattern.pattern, row.case_name
 
-    new_row = list(row.order_fields())
-    hits = set()
-
     for year in xrange(2004, 2012 + 1):
 
         raw_data = _get_raw_data(row.CIK, year)
 
         if raw_data is not None:
             if re.search(case_pattern, raw_data):
-                hits.add(year)
+                row.case_mentioned_in_a_10k_for_a_year(year)
 
-    print "Hits:", hits
-
-    for year in xrange(2004, 2012 + 1):
-        if year in hits:
-            new_row.append(1)
-        else:
-            new_row.append(0)
-
-    row_holder.append(new_row)
-
+    row_holder.append(row.construct_row_with_ordered_fields())
 
 def _get_first_word_of_case_name(case_name):
+    ''' 
+        checking for the first word is a strategy that produces a high false-positive rate,
+        but, importantly and conversely, produces a very small false-negative rate.
+        so we'll just need to check the false-positives manually; there aren't too many of them
+    ''' 
 
     first_word = ""
     for potential in re.split("\s+", case_name):
@@ -170,7 +164,7 @@ def main(items_to_add):
 
     for row in litigationReader:
         
-        row_object = Row(*row)
+        row_object = NewRowGenerator(*row)
 
         if row_object.index in finished_indices:
             continue
@@ -192,9 +186,11 @@ def main(items_to_add):
             # this row didnt have a CIK. first, check previous rows for the mapping we want.
             # if that doesn't exist, use the company name and edgar to get the 
             # potential CIK.
-            row_object.CIK = _get_potential_cik_from_company_name(row_object.plaintiff)
+            result = _get_potential_cik_from_company_name(row_object.plaintiff)
+            if result is not None:
+                row_object.CIK = result
 
-        if len(row_object.CIK) == 0 or int(row_object.CIK) == 0:
+        if int(row_object.CIK) == 0:
             print "Error: No CIK. Index:", row_object.index
             continue
 
@@ -213,7 +209,7 @@ def main(items_to_add):
         litigationWriter.writerow(row)
 
 
-class Row(object):
+class NewRowGenerator(object):
 
     def __init__(self, index, date_field, CIK, plaintiff, case_name):
         self.index = index
@@ -221,10 +217,31 @@ class Row(object):
         self.date_field = date_field
         self.plaintiff = plaintiff
         self.case_name = case_name
+        self._years_in_which_litigation_is_mentioned = set()
 
-    def order_fields(self):
-        ''' return a list of the fields of this row in the order that they should've been read from the csv file '''
-        return self.index, self.date_field, self.CIK, self.plaintiff, self.case_name
+
+    def case_mentioned_in_a_10k_for_a_year(self, year):
+        ''' 
+            we found this row's case mentioned in a 10-K for a certain year. add that year to the object
+        '''
+        year = int(year)
+        self._years_in_which_litigation_is_mentioned.add(year)
+
+    def construct_row_with_ordered_fields(self):
+        ''' 
+            return a list of the fields of this row in the order that we want to see them in the output csv file. 
+            note that we are interested in 10-Ks from 2004 to 2012, so check for those particular years in 
+            self._years_in_which_litigation_is_mentioned
+        '''
+        returnable = [self.index, self.date_field, self.CIK, self.plaintiff, self.case_name]
+        
+        for year in xrange(2004, 2012 + 1):
+            if year in self._years_in_which_litigation_is_mentioned:
+                returnable.append(1)
+            else:
+                returnable.append(0)
+
+        return returnable
 
 if __name__ == '__main__':
     start = time.time()
