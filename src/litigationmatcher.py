@@ -83,19 +83,19 @@ def _get_first_word_of_case_name(case_name):
         so we'll just need to check the false-positives manually; there aren't too many of them
     ''' 
 
-    first_word = ""
+    def _get_blacklisted_words():
+        return 'a', 'an', 'the', 'in', 'de', 'del', 're', 're:', 'el', 'la', 'los', 'las'
+
+    first_word = ''
     for potential in re.split("\s+", case_name):
         
         # pass the blacklist of common words
         # I don't care about.
 
         potential_lc = potential.lower()
-        if potential_lc == 'a':
-            continue
-        if potential_lc == 'an':
-            continue
-        if potential_lc == 'the':
-            continue
+        for blacklisted_word in _get_blacklisted_words():
+            if potential_lc == blacklisted_word:
+                continue
 
         first_word = potential
         break
