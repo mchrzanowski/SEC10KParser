@@ -84,18 +84,23 @@ def _get_first_word_of_case_name(case_name):
     ''' 
 
     def _get_blacklisted_words():
-        return 'a', 'an', 'the', 'in', 'de', 'del', 're', 're:', 'el', 'la', 'los', 'las'
+        return 'a', 'an', 'the', 'in', 'de', 'del', 're', 're:', 'el', 'la', 'los', 'las', 'st.'
 
     first_word = ''
     for potential in re.split("\s+", case_name):
         
         # pass the blacklist of common words
         # I don't care about.
-
+        skip_word_flag = False
         potential_lc = potential.lower()
+
         for blacklisted_word in _get_blacklisted_words():
             if potential_lc == blacklisted_word:
-                continue
+                skip_word_flag = True
+                break
+
+        if skip_word_flag:
+            continue
 
         first_word = potential
         break
@@ -163,7 +168,7 @@ def main(items_to_add):
 
 
     for row in litigationReader:
-        
+
         row_object = NewRowGenerator(*row)
 
         if row_object.index in finished_indices:
@@ -245,7 +250,7 @@ class NewRowGenerator(object):
 
 if __name__ == '__main__':
     start = time.time()
-    
+
     parser = argparse.ArgumentParser(description='A script that checks to see whether lawsuits are mentioned in defendant 10-Ks.')
     parser.add_argument('-add', type=int, help="Add more rows to the completed output file")
     args = vars(parser.parse_args())
