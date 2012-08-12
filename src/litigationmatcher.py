@@ -174,6 +174,9 @@ def main(items_to_add):
         if row_object.CIK == Constants.CIK_CODE_TO_INDICATE_ROW_SHOULD_BE_SKIPPED:
             continue
 
+        if row_object.CIK != '0000037748':
+            continue
+
         processed_index_counter += 1
 
         if processed_index_counter > items_to_add:
@@ -203,7 +206,7 @@ def main(items_to_add):
 
         case_pattern = _get_first_word_of_case_name(row_object.case_name)
 
-        #_perform_check_and_write_to_results_file(case_pattern, index, CIK, original_case_name, row, row_holder)
+        #_perform_check_and_write_to_results_file(case_pattern, row_object, row_holder)
 
         pool.apply_async(_perform_check_and_write_to_results_file, \
             args=(case_pattern, row_object, row_holder))

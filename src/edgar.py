@@ -50,7 +50,7 @@ def _pull_edgar_search_page(CIK=None, company_name=None):
 
     if CIK is not None:
         if CIK not in _url_cache:
-            website = Constants.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + CIK + "&type=?0-K"
+            website = Constants.SEC_WEBSITE + "/cgi-bin/browse-edgar?action=getcompany&CIK=" + CIK + "&type=10-K"
             data = urllib2.urlopen(website, timeout=Constants.URL_DOWNLOAD_TIMEOUT_IN_SECS).read()
             _url_cache[CIK] = data
 
