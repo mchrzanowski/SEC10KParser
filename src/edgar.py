@@ -15,8 +15,10 @@ _url_mutex = multiprocessing.Lock()
 
 
 def _transform_company_name_into_edgar_grammar(name):
-    ''' remove common sources of problems when
-    mapping company names to EDGAR CIKs '''
+    '''
+        remove common sources of problems when
+        mapping company names to EDGAR CIKs
+    '''
 
     name = re.sub("\.", "", name)
     name = re.sub("\'", "", name)
@@ -33,9 +35,11 @@ def _transform_company_name_into_edgar_grammar(name):
 
 
 def _pull_edgar_search_page(CIK=None, company_name=None):
-    ''' get the EDGAR search page for a passed
-    in CIK or company name.
-    used cached data when possible. '''
+    '''
+        get the EDGAR search page for a passed
+        in CIK or company name.
+        used cached data when possible.
+    '''
 
     # maintain an exclusive zone so that one process doesn't
     # try to access the cache while another is deleting
@@ -102,7 +106,9 @@ def _get_company_name_from_soup(soup):
 
 def get_name_of_company_from_cik(CIK):
     ''' given a CIK, return the company's name '''
+
     url_data = _pull_edgar_search_page(CIK)
+
     company_name = _process_url_into_soup_and_get_data(url_data, _get_company_name_from_soup)
 
     if company_name is not None and re.search("[A-Za-z]+", company_name):
@@ -132,6 +138,9 @@ def get_cik_of_company_from_name(name):
 
     url_data = _pull_edgar_search_page(company_name=name)
 
+    # this is only going to work when there is no ambiguity as to
+    # which CIK corresponds to this given company name; if a search page
+    # is encountered, we return None!
     CIK = _process_url_into_soup_and_get_data(url_data, _get_cik_from_soup)
 
     if CIK is not None:

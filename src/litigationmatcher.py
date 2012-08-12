@@ -15,7 +15,8 @@ import time
 import urllib2
 import Utilities
 
-_name_to_cik_mapping = multiprocessing.Manager().dict()
+_manager = multiprocessing.Manager()
+_name_to_cik_mapping = _manager.dict()
 _corpus_access_mutex = multiprocessing.Lock()
 
 
@@ -155,7 +156,7 @@ def main(items_to_add):
 
     pool = multiprocessing.Pool(maxtasksperchild=15)
 
-    row_holder = multiprocessing.Manager().list()
+    row_holder = _manager.list()
 
     processed_index_counter = 0
 
@@ -166,17 +167,19 @@ def main(items_to_add):
         row_object = NewRowGenerator(*row)
 
         # already processed.
-        if row_object.index in finished_indices: continue
+        if row_object.index in finished_indices:
+            continue
 
         # intentionally skip.
-        if row_object.CIK == Constants.CIK_CODE_TO_INDICATE_ROW_SHOULD_BE_SKIPPED: continue
+        if row_object.CIK == Constants.CIK_CODE_TO_INDICATE_ROW_SHOULD_BE_SKIPPED:
+            continue
 
         processed_index_counter += 1
 
         if processed_index_counter > items_to_add:
             break
 
-        print "BEGIN:", row
+        #print "BEGIN:", row
 
         # rows always have a plaintiff but not always a CIK.
         if int(row_object.CIK) > 0:
@@ -188,7 +191,7 @@ def main(items_to_add):
 
         else:
             # this row didnt have a CIK. first, check previous rows for the mapping we want.
-            # if that doesn't exist, use the company name and edgar to get the 
+            # if that doesn't exist, use the company name and edgar to get the
             # potential CIK.
             result = _get_potential_cik_from_company_name(row_object.plaintiff)
             if result is not None:
@@ -223,22 +226,21 @@ class NewRowGenerator(object):
         self.case_name = case_name
         self._years_in_which_litigation_is_mentioned = set()
 
-
     def case_mentioned_in_a_10k_for_a_year(self, year):
-        ''' 
+        '''
             we found this row's case mentioned in a 10-K for a certain year. add that year to the object
         '''
         year = int(year)
         self._years_in_which_litigation_is_mentioned.add(year)
 
     def construct_row_with_ordered_fields(self):
-        ''' 
-            return a list of the fields of this row in the order that we want to see them in the output csv file. 
-            note that we are interested in 10-Ks from 2004 to 2012, so check for those particular years in 
+        '''
+            return a list of the fields of this row in the order that we want to see them in the output csv file.
+            note that we are interested in 10-Ks from 2004 to 2012, so check for those particular years in
             self._years_in_which_litigation_is_mentioned
         '''
         returnable = [self.index, self.date_field, self.CIK, self.plaintiff, self.case_name]
-        
+
         for year in xrange(2004, 2012 + 1):
             if year in self._years_in_which_litigation_is_mentioned:
                 returnable.append(1)
@@ -254,6 +256,6 @@ if __name__ == '__main__':
     parser.add_argument('-add', type=int, help="Add more rows to the completed output file")
     args = vars(parser.parse_args())
     main(args['add'])
-    
+
     end = time.time()
     print "Runtime:", end - start, "seconds."
