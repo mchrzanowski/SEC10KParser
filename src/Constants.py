@@ -5,7 +5,6 @@ Created on Jun 8, 2012
 '''
 
 import os.path
-import re
 
 CIK_CODE_LENGTH = 10
 
@@ -38,3 +37,7 @@ PATH_TO_NEW_LITIGATION_FILE = os.path.join(os.curdir, '../etc/case_parties_outpu
 SEC_WEBSITE = "http://www.sec.gov/"
 
 REGRESSION_CHAR_COUNT_CHANGE_THRESHOLD = 0.1
+
+URL_DOWNLOAD_TIMEOUT_IN_SECS = 80000
+
+CIK_CODE_TO_INDICATE_ROW_SHOULD_BE_SKIPPED = 'N/A'

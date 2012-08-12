@@ -16,8 +16,8 @@ import urllib2
 import Utilities
 
 _name_to_cik_mapping = multiprocessing.Manager().dict()
-
 _corpus_access_mutex = multiprocessing.Lock()
+
 
 def _get_potential_cik_from_company_name(plaintiff):
     ''' try matching a company name to its CIK. there are several approaches to this. '''
@@ -39,10 +39,10 @@ def _get_potential_cik_from_company_name(plaintiff):
 
 
 def _get_raw_data(CIK, year):
-    ''' 
+    '''
         process-safe way of accessing a given 10-K as indexed
         by CIK and filing year. method will store the data to disk
-        if it's not already there 
+        if it's not already there
     '''
     # maintain exclusive zone when acquiring raw data.
     # this section of the code could, based on OS scheduling, easily
@@ -53,14 +53,15 @@ def _get_raw_data(CIK, year):
 
     if raw_data is None:
         url = edgar.get_10k_url(CIK=CIK, filing_year=year)
-    
+
         if url is not None:
-            raw_data = urllib2.urlopen(url, timeout=72000).read()
+            raw_data = urllib2.urlopen(url, timeout=Constants.URL_DOWNLOAD_TIMEOUT_IN_SECS).read()
             CorpusAccess.write_raw_url_data_to_file(raw_data, CIK=CIK, filing_year=year)
 
     _corpus_access_mutex.release()
 
     return raw_data
+
 
 def _perform_check_and_write_to_results_file(case_pattern, row, row_holder):
 
@@ -76,30 +77,23 @@ def _perform_check_and_write_to_results_file(case_pattern, row, row_holder):
 
     row_holder.append(row.construct_row_with_ordered_fields())
 
-def _get_first_word_of_case_name(case_name):
-    ''' 
-        checking for the first word is a strategy that produces a high false-positive rate,
-        but, importantly and conversely, produces a very small false-negative rate.
-        so we'll just need to check the false-positives manually; there aren't too many of them
-    ''' 
 
-    def _get_blacklisted_words():
-        return 'a', 'an', 'the', 'in', 'de', 'del', 're', 're:', 'el', 'la', 'los', 'las', 'st.'
+def _get_first_word_of_case_name(case_name):
+    '''
+        checking for the first word is a strategy that produces a high false-positive rate,
+        but, importantly and conversely, produces a very low false-negative rate.
+        so we'll just need to check the false-positives manually; there aren't too many of them
+    '''
+
+    def _is_word_blacklisted(word):
+        return word.lower() in ('a', 'an', 'the', 'in', 'de', 'del', 're', 're:', 'el', 'la', 'los', 'las', 'st', 'st.')
 
     first_word = ''
     for potential in re.split("\s+", case_name):
-        
+
         # pass the blacklist of common words
         # I don't care about.
-        skip_word_flag = False
-        potential_lc = potential.lower()
-
-        for blacklisted_word in _get_blacklisted_words():
-            if potential_lc == blacklisted_word:
-                skip_word_flag = True
-                break
-
-        if skip_word_flag:
+        if _is_word_blacklisted(potential):
             continue
 
         first_word = potential
@@ -133,10 +127,11 @@ def _get_first_word_of_case_name(case_name):
     else:
         return re.compile(pattern)
 
+
 def _read_ouput_file_and_get_finished_indices():
-    ''' 
+    '''
         read the output file and see which indices exist in there. those are the finished rows.
-        also read the rows for the already-learned CIK/plaintiff mapping 
+        also read the rows for the already-learned CIK/plaintiff mapping
     '''
     reader = csv.reader(open(Constants.PATH_TO_NEW_LITIGATION_FILE, 'rb'), delimiter=',')
 
@@ -166,18 +161,22 @@ def main(items_to_add):
 
     litigationReader = csv.reader(open(Constants.PATH_TO_LITIGATION_FILE, 'rb'), delimiter=',')
 
-
     for row in litigationReader:
 
         row_object = NewRowGenerator(*row)
 
-        if row_object.index in finished_indices:
-            continue
-        else:
-            processed_index_counter += 1
+        # already processed.
+        if row_object.index in finished_indices: continue
+
+        # intentionally skip.
+        if row_object.CIK == Constants.CIK_CODE_TO_INDICATE_ROW_SHOULD_BE_SKIPPED: continue
+
+        processed_index_counter += 1
 
         if processed_index_counter > items_to_add:
             break
+
+        print "BEGIN:", row
 
         # rows always have a plaintiff but not always a CIK.
         if int(row_object.CIK) > 0:
@@ -185,8 +184,8 @@ def main(items_to_add):
             # update the key-value pairing with each row iteration
             # as company CIKSs can change as time goes on.
             if len(row_object.plaintiff) > 0:
-                _name_to_cik_mapping[row_object.plaintiff] = row_object.CIK        
-        
+                _name_to_cik_mapping[row_object.plaintiff] = row_object.CIK
+
         else:
             # this row didnt have a CIK. first, check previous rows for the mapping we want.
             # if that doesn't exist, use the company name and edgar to get the 
