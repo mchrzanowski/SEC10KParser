@@ -174,9 +174,6 @@ def main(items_to_add):
         if row_object.CIK == Constants.CIK_CODE_TO_INDICATE_ROW_SHOULD_BE_SKIPPED:
             continue
 
-        if row_object.CIK != '0000037748':
-            continue
-
         processed_index_counter += 1
 
         if processed_index_counter > items_to_add:
