@@ -68,13 +68,15 @@ def _perform_check_and_write_to_results_file(case_pattern, row, row_holder):
 
     print "Start:", row.index, row.CIK, case_pattern.pattern, row.case_name
 
-    for year in xrange(2004, 2012 + 1):
+    # check if CIK is valid.
+    if int(row.CIK) > 0:
+        for year in xrange(2004, 2012 + 1):
 
-        raw_data = _get_raw_data(row.CIK, year)
+            raw_data = _get_raw_data(row.CIK, year)
 
-        if raw_data is not None:
-            if re.search(case_pattern, raw_data):
-                row.case_mentioned_in_a_10k_for_a_year(year)
+            if raw_data is not None:
+                if re.search(case_pattern, raw_data):
+                    row.case_mentioned_in_a_10k_for_a_year(year)
 
     row_holder.append(row.construct_row_with_ordered_fields())
 
@@ -113,8 +115,18 @@ def _get_first_word_of_case_name(case_name):
     pattern = re.sub("\(", "\(?", pattern)
     pattern = re.sub("\)", "\)?", pattern)
 
-    # sub apostrophes
-    pattern = re.sub("'", "'?", pattern)
+    # apostrophes are non-ascii in 10-Ks.
+    # so, we need to remove the chunk of the pattern
+    # before or after the apostrophe (whichever is smaller)
+    # and make do with the rest.
+    fragments = re.split("\s*'\s*", pattern)
+    if len(fragments) >= 2:
+        selection = fragment[0]
+        for fragment in fragments:
+            fragment = fragment.strip()
+            if len(fragment) > len(selection):
+                selection = fragment
+        pattern = selection
 
     # add borders. space the special chars out
     # so that they don't become backspaces.
@@ -199,7 +211,7 @@ def main(items_to_add):
 
         if int(row_object.CIK) == 0:
             print "Error: No CIK. Index:", row_object.index
-            continue
+            #continue
 
         case_pattern = _get_first_word_of_case_name(row_object.case_name)
 

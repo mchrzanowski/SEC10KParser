@@ -12,8 +12,9 @@ import re
 import shutil
 import Utilities
 
+
 def get_CIK_from_corpus(company_name):
-    
+
     if os.path.exists(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):
         with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'r') as f:
             for line in f:
@@ -23,8 +24,9 @@ def get_CIK_from_corpus(company_name):
                 if data[1] == company_name:
                     return data[0]
 
+
 def get_company_name_from_corpus(CIK):
-    
+
     CIK = Utilities.format_CIK(CIK)
     if os.path.exists(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE):
         with open(Constants.PATH_TO_COMPANY_NAME_AND_CIK_MAPPING_FILE, 'r') as f:
@@ -34,6 +36,7 @@ def get_company_name_from_corpus(CIK):
                     continue
                 if data[0] == CIK:
                     return data[1]
+
 
 def write_company_name_and_cik_mapping_to_corpus(CIK, company_name):
     
@@ -69,17 +72,19 @@ def _walk_directory(corpus_root):
                 filing_year = re.sub(get_filing_year_from_corpus_file, "", filing_year_file)
                 yield potential_cik, filing_year, path_to_file
 
+
 def access_every_file_in_legal_footnotes_corpus():
     corpus_root = Constants.PATH_TO_LEGAL_FOOTNOTE_CORPUS
     for CIK, filing_year, filepath in _walk_directory(corpus_root):
         yield CIK, filing_year, filepath 
 
+
 def access_every_file_in_legal_proceeding_corpus():
-    
+
     corpus_root = Constants.PATH_TO_LEGAL_PROCEEDING_CORPUS
     for CIK, filing_year, filepath in _walk_directory(corpus_root):
-        yield CIK, filing_year, filepath 
-                
+        yield CIK, filing_year, filepath
+
 
 def get_processed_website_data_from_corpus(CIK, filing_year):
     
