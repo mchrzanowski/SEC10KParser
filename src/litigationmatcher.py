@@ -121,7 +121,7 @@ def _get_first_word_of_case_name(case_name):
     # and make do with the rest.
     fragments = re.split("\s*'\s*", pattern)
     if len(fragments) >= 2:
-        selection = fragment[0]
+        selection = fragments[0]
         for fragment in fragments:
             fragment = fragment.strip()
             if len(fragment) > len(selection):
