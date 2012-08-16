@@ -158,7 +158,7 @@ def _read_ouput_file_and_get_finished_indices():
         plaintiff = row[3]
 
         results.add(index)
-        if len(CIK) > 0:
+        if Utilities.is_CIK_valid(CIK):
             _name_to_cik_mapping[plaintiff] = CIK
 
     return results
