@@ -174,9 +174,9 @@ def main(items_to_add):
 
     processed_index_counter = 0
 
-    litigationReader = csv.reader(open(Constants.PATH_TO_LITIGATION_FILE, 'rb'), delimiter=',')
+    litigation_reader = csv.reader(open(Constants.PATH_TO_LITIGATION_FILE, 'rb'), delimiter=',')
 
-    for row in litigationReader:
+    for row in litigation_reader:
 
         row_object = NewRowGenerator(*row)
 
@@ -217,17 +217,17 @@ def main(items_to_add):
 
         case_pattern = _get_first_word_of_case_name(row_object.case_name)
 
-        _perform_check_and_write_to_results_file(case_pattern, row_object, row_holder)
+        #_perform_check_and_write_to_results_file(case_pattern, row_object, row_holder)
 
-        #pool.apply_async(_perform_check_and_write_to_results_file, \
-        #    args=(case_pattern, row_object, row_holder))
+        pool.apply_async(_perform_check_and_write_to_results_file, \
+            args=(case_pattern, row_object, row_holder))
 
     pool.close()
     pool.join()
 
-    litigationWriter = csv.writer(open(Constants.PATH_TO_NEW_LITIGATION_FILE, 'ab'), delimiter=',')
+    litigation_writer = csv.writer(open(Constants.PATH_TO_NEW_LITIGATION_FILE, 'ab'), delimiter=',')
     for row in row_holder:
-        litigationWriter.writerow(row)
+        litigation_writer.writerow(row)
 
 
 class NewRowGenerator(object):
