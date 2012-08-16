@@ -133,17 +133,19 @@ def write_comparison_to_file(new_output, old_output, CIK, filing_year):
         f.writelines(new_output)
 
 _raw_data_writing_mutex = multiprocessing.Lock()
+
+
 def write_raw_url_data_to_file(data, CIK, filing_year):
     CIK = Utilities.format_CIK(CIK)
     filing_year = Utilities.sanitize_filing_year(filing_year)
-    
-    path = os.path.join(Constants.PATH_TO_RAW_URL_DATA, CIK) 
-    
+
+    path = os.path.join(Constants.PATH_TO_RAW_URL_DATA, CIK)
+
     _raw_data_writing_mutex.acquire()
 
-    if not os.path.exists(path): 
+    if not os.path.exists(path):
         os.mkdir(path)
-    
+
     path_with_file = os.path.join(path, filing_year + ".txt")
 
     if not os.path.exists(path_with_file):

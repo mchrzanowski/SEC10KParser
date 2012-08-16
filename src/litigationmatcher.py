@@ -69,7 +69,7 @@ def _perform_check_and_write_to_results_file(case_pattern, row, row_holder):
     print "Start:", row.index, row.CIK, case_pattern.pattern, row.case_name
 
     # check if CIK is valid.
-    if int(row.CIK) > 0:
+    if Utilities.is_CIK_valid(row.CIK):
         for year in xrange(2004, 2012 + 1):
 
             raw_data = _get_raw_data(row.CIK, year)
@@ -196,7 +196,7 @@ def main(items_to_add):
         #print "BEGIN:", row
 
         # rows always have a plaintiff but not always a CIK.
-        if int(row_object.CIK) > 0:
+        if not Utilities.is_CIK_valid(row_object.CIK):
             # if this row has the CIK-company name mapping, cache it.
             # update the key-value pairing with each row iteration
             # as company CIKSs can change as time goes on.
@@ -211,16 +211,16 @@ def main(items_to_add):
             if result is not None:
                 row_object.CIK = result
 
-        if int(row_object.CIK) == 0:
+        if not Utilities.is_CIK_valid(row_object.CIK):
             print "Error: No CIK. Index:", row_object.index
             #continue
 
         case_pattern = _get_first_word_of_case_name(row_object.case_name)
 
-        #_perform_check_and_write_to_results_file(case_pattern, row_object, row_holder)
+        _perform_check_and_write_to_results_file(case_pattern, row_object, row_holder)
 
-        pool.apply_async(_perform_check_and_write_to_results_file, \
-            args=(case_pattern, row_object, row_holder))
+        #pool.apply_async(_perform_check_and_write_to_results_file, \
+        #    args=(case_pattern, row_object, row_holder))
 
     pool.close()
     pool.join()
